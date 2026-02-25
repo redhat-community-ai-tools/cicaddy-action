@@ -1,0 +1,54 @@
+name: 'Cicaddy AI Agent'
+description: 'Run AI agent tasks in GitHub Actions using cicaddy'
+branding:
+  icon: 'cpu'
+  color: 'blue'
+
+inputs:
+  ai-provider:
+    description: 'AI provider: gemini, openai, claude'
+    required: true
+  ai-model:
+    description: 'Model identifier'
+    required: true
+  ai-api-key:
+    description: 'AI provider API key'
+    required: true
+  task-file:
+    description: 'Path to DSPy YAML task file'
+    required: false
+  task-prompt:
+    description: 'Inline task prompt (alternative to task-file)'
+    required: false
+  report-template:
+    description: 'Path to custom HTML report template'
+    required: false
+  mcp-servers-config:
+    description: 'JSON array of MCP server configs (optional, for future use)'
+    required: false
+    default: '[]'
+  slack-webhook-url:
+    description: 'Slack webhook URL for notifications'
+    required: false
+  post-pr-comment:
+    description: 'Post analysis results as PR comment (requires github-token with pull-requests: write)'
+    required: false
+    default: 'false'
+  github-token:
+    description: 'GitHub token for API access'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  report-html:
+    description: 'Path to generated HTML report'
+  report-json:
+    description: 'Path to JSON analysis result'
+  summary:
+    description: 'Brief text summary'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  # After first GHCR publish, switch to pre-built image for faster startup:
+  # image: 'docker://ghcr.io/redhat-community-ai-tools/cicaddy-action:0.1.0'

@@ -1,0 +1,66 @@
+name: Generate Changelog Report
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      from_tag:
+        description: 'Start tag'
+        required: false
+      to_tag:
+        description: 'End tag (default: latest)'
+        required: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Report
+        uses: ./
+        id: report
+        with:
+          ai-provider: gemini
+          ai-model: gemini-2.5-flash
+          ai-api-key: ${{ secrets.AI_API_KEY }}
+          task-file: tasks/changelog_report.yml
+        env:
+          FROM_TAG: ${{ inputs.from_tag || '' }}
+          TO_TAG: ${{ inputs.to_tag || github.event.release.tag_name || 'HEAD' }}
+          REPORT_TITLE: "Cicaddy Action — Release Update"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog-report
+          path: ${{ steps.report.outputs.report-html }}
+
+      - name: Prepare Pages
+        run: |
+          mkdir -p _site
+          cp "${{ steps.report.outputs.report-html }}" _site/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: generate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

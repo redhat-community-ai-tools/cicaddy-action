@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v7
+      - name: Install dependencies
+        run: |
+          uv pip install --system pre-commit
+          uv pip install --system -e .
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: astral-sh/setup-uv@v7
+      - name: Install dependencies
+        run: uv pip install --system -e ".[test]"
+      - name: Run tests with coverage
+        run: pytest tests/ -q --cov=src/cicaddy_github --cov-report=xml
+      - name: Upload coverage
+        if: matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v6
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build Docker image
+        run: docker build -t cicaddy-action:test .
+      - name: Test Docker image runs
+        run: docker run --rm --entrypoint cicaddy cicaddy-action:test --version

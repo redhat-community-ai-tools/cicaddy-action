@@ -1,0 +1,70 @@
+name: changelog_report
+description: "Generate product changelog from git tag diffs and release notes"
+type: scheduled_analysis
+version: "1.0"
+
+inputs:
+  - name: from_tag
+    env_var: FROM_TAG
+    description: "Start tag (auto-detected if empty: previous tag)"
+    required: false
+  - name: to_tag
+    env_var: TO_TAG
+    default: "HEAD"
+    description: "End tag or HEAD"
+    required: false
+  - name: report_title
+    env_var: REPORT_TITLE
+    default: "Product Update Report"
+    required: false
+
+outputs:
+  - name: executive_summary
+    format: paragraph
+    required: true
+  - name: new_features
+    format: list
+    required: true
+  - name: improvements
+    format: list
+    required: false
+  - name: bug_fixes
+    format: list
+    required: false
+  - name: breaking_changes
+    format: list
+    required: false
+
+tools:
+  servers: []
+  required_tools: []
+  forbidden_tools: []
+
+reasoning: chain_of_thought
+output_format: html
+
+context: |
+  Generate a professional product update report titled "{{REPORT_TITLE}}".
+
+  **Step 1: Gather Data**
+  - Use get_recent_tags to find the two most recent tags (or use FROM_TAG/TO_TAG if provided)
+  - Use get_tag_diff to get commit messages between the tags
+  - Use get_diff_stat to understand scope of changes
+  - Use get_release_notes if a GitHub release exists for the tag
+
+  **Step 2: Categorize Changes**
+  From commit messages and diff stats, categorize into:
+  - New Features (feat:, feature)
+  - Improvements & Enhancements (improve, enhance, refactor)
+  - Bug Fixes (fix:, bugfix)
+  - Breaking Changes (breaking, BREAKING CHANGE)
+  - Documentation (docs:)
+  - Infrastructure / CI (ci:, chore:, build:)
+
+  **Step 3: Generate Report**
+  - Write an executive summary (2-3 sentences) highlighting key themes
+  - List categorized changes with concise, user-facing descriptions
+  - Use the HTML report template if provided via REPORT_TEMPLATE
+  - Output must be a standalone HTML file
+  - Language should be public-facing — no internal references
+  - Do NOT include raw commit hashes or author emails

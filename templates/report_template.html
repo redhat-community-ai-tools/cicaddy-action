@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Cicaddy Action Report Template - Deep Space Dark Theme
+
+  A modern dark theme for AI-generated product update reports.
+  Based on the cicaddy report template design system.
+
+  PLACEHOLDERS (replace with actual data):
+  - {{REPORT_TITLE}} - Main report title
+  - {{REPORT_SUBTITLE}} - Subtitle or scope description
+  - {{REPORT_ICON}} - Emoji icon for the report type
+  - {{BADGE_LABEL}} - Badge text (e.g., project name)
+  - {{BADGE_ICON}} - Badge emoji
+  - {{REPORT_DATE}} - Generation date
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{REPORT_TITLE}}</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-base: #0c0e16;
+            --bg-surface: #13161f;
+            --bg-surface-raised: #1a1d2b;
+            --bg-surface-overlay: #222638;
+            --accent-primary: #6d9fff;
+            --accent-secondary: #5cc8d4;
+            --accent-success: #4ade80;
+            --accent-warning: #fbbf24;
+            --accent-danger: #f87171;
+            --accent-purple: #a78bfa;
+            --text-primary: #e8eaed;
+            --text-secondary: #9ba3b5;
+            --text-muted: #5f6880;
+            --border-subtle: rgba(109, 159, 255, 0.12);
+            --border-default: rgba(109, 159, 255, 0.20);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --transition-fast: 150ms ease;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container { max-width: 1320px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+        .header {
+            background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-raised) 50%, rgba(109, 159, 255, 0.04) 100%);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            padding: 2rem 2.25rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .team-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(109, 159, 255, 0.08);
+            border: 1px solid rgba(109, 159, 255, 0.25);
+            padding: 0.4rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--accent-primary);
+        }
+
+        .report-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.4rem; letter-spacing: -0.02em; }
+        h1 span { color: var(--accent-primary); }
+        .subtitle { color: var(--text-secondary); font-size: 0.95rem; }
+
+        .section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .section-header h2 { font-size: 1.2rem; font-weight: 600; }
+
+        .section-icon {
+            width: 36px; height: 36px;
+            background: rgba(109, 159, 255, 0.08);
+            border: 1px solid rgba(109, 159, 255, 0.15);
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .executive-summary {
+            background: linear-gradient(135deg, rgba(109, 159, 255, 0.06) 0%, rgba(92, 200, 212, 0.06) 100%);
+            border: 1px solid rgba(109, 159, 255, 0.2);
+            border-radius: var(--radius-md);
+            padding: 1.5rem 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .executive-summary h3 { font-size: 1.05rem; margin-bottom: 1rem; color: var(--accent-primary); font-weight: 600; }
+        .executive-summary p { margin-bottom: 0.85rem; line-height: 1.8; }
+
+        .change-list { list-style: none; padding: 0; }
+        .change-list li {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .change-list li:last-child { border-bottom: none; }
+
+        .change-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.05em;
+            margin-right: 0.5rem;
+        }
+
+        .tag-feature { background: rgba(74, 222, 128, 0.15); color: var(--accent-success); }
+        .tag-improvement { background: rgba(109, 159, 255, 0.15); color: var(--accent-primary); }
+        .tag-fix { background: rgba(251, 191, 36, 0.15); color: var(--accent-warning); }
+        .tag-breaking { background: rgba(248, 113, 113, 0.15); color: var(--accent-danger); }
+        .tag-docs { background: rgba(167, 139, 250, 0.15); color: var(--accent-purple); }
+        .tag-infra { background: rgba(92, 200, 212, 0.15); color: var(--accent-secondary); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .metric-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .metric-label {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-top: 0.35rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-weight: 500;
+        }
+        .metric-value.success { color: var(--accent-success); }
+        .metric-value.info { color: var(--accent-secondary); }
+
+        a { color: var(--accent-primary); text-decoration: none; }
+        a:hover { color: #93b9ff; text-decoration: underline; }
+
+        .footer {
+            text-align: center;
+            padding: 2.5rem 2rem 2rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border-subtle);
+            margin-top: 1rem;
+        }
+        .footer p { margin-top: 0.4rem; }
+
+        @media (max-width: 768px) {
+            .container { padding: 1.25rem 1rem; }
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .header { padding: 1.5rem; }
+            .header-top { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+            h1 { font-size: 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            .metrics-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+    <!--
+    USAGE GUIDE — Build the report body using these components:
+
+    1. HEADER:
+         <div class="container">
+           <div class="header">
+             <div class="header-top">
+               <span class="team-badge">{{BADGE_ICON}} {{BADGE_LABEL}}</span>
+               <span class="report-date">Generated: {{REPORT_DATE}}</span>
+             </div>
+             <h1>{{REPORT_ICON}} {{REPORT_TITLE}} <span>Report</span></h1>
+             <p class="subtitle">{{REPORT_SUBTITLE}}</p>
+           </div>
+
+    2. METRICS GRID:
+           <div class="metrics-grid">
+             <div class="metric-card">
+               <div class="metric-value success">42</div>
+               <div class="metric-label">New Features</div>
+             </div>
+           </div>
+
+    3. EXECUTIVE SUMMARY:
+           <div class="section">
+             <div class="section-header">
+               <div class="section-icon">icon</div>
+               <h2>Executive Summary</h2>
+             </div>
+             <div class="executive-summary">
+               <h3>Key Highlights</h3>
+               <p>Summary text...</p>
+             </div>
+           </div>
+
+    4. CHANGE LIST:
+           <div class="section">
+             <div class="section-header">
+               <div class="section-icon">icon</div>
+               <h2>New Features</h2>
+             </div>
+             <ul class="change-list">
+               <li><span class="change-tag tag-feature">FEATURE</span> Description</li>
+             </ul>
+           </div>
+
+    5. FOOTER:
+           <div class="footer">
+             <p>{{REPORT_TITLE}} &middot; Generated by cicaddy-action</p>
+           </div>
+         </div>
+
+    Tag classes: .tag-feature, .tag-improvement, .tag-fix,
+                 .tag-breaking, .tag-docs, .tag-infra
+    -->
+</body>
+</html>
