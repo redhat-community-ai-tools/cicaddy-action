@@ -15,7 +15,7 @@ class LeakDetector:
         self.plugins = get_mapping_from_secret_type_to_class()
         logger.debug(f"Initialized leak detector with {len(self.plugins)} plugins")
 
-    def sanitize_text(self, text: str) -> str:
+    def sanitize_text(self, text: str | None) -> str | None:
         """Scan text for secrets and replace them with redaction labels.
 
         Args:
@@ -90,7 +90,7 @@ class LeakDetector:
 
         try:
             if hasattr(secret, "secret_value"):
-                secret_value = secret.secret_value
+                secret_value: str = secret.secret_value  # type: ignore[assignment]
                 start = 0
                 while True:
                     pos = line.find(secret_value, start)
