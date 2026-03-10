@@ -18,10 +18,12 @@ jobs:
 
       - name: Build MCP config
         id: mcp
+        env:
+          CONTEXT7_KEY: ${{ secrets.CONTEXT7_API_KEY }}
         run: |
           # Context7 is optional — only include if secret is configured
-          if [ -n "${{ secrets.CONTEXT7_API_KEY }}" ]; then
-            echo 'config=[{"name":"Context7","protocol":"http","endpoint":"https://mcp.context7.com/mcp","headers":{"CONTEXT7_API_KEY":"${{ secrets.CONTEXT7_API_KEY }}"},"timeout":300,"idle_timeout":60}]' >> "$GITHUB_OUTPUT"
+          if [ -n "${CONTEXT7_KEY}" ]; then
+            echo "config=[{\"name\":\"Context7\",\"protocol\":\"http\",\"endpoint\":\"https://mcp.context7.com/mcp\",\"headers\":{\"CONTEXT7_API_KEY\":\"${CONTEXT7_KEY}\"},\"timeout\":300,\"idle_timeout\":60}]" >> "$GITHUB_OUTPUT"
           else
             echo 'config=[]' >> "$GITHUB_OUTPUT"
           fi
