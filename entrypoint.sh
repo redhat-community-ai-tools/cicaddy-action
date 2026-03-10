@@ -22,6 +22,11 @@ export SLACK_WEBHOOK_URL="${INPUT_SLACK_WEBHOOK_URL}"
 export GITHUB_TOKEN="${INPUT_GITHUB_TOKEN:-$GITHUB_TOKEN}"
 export POST_PR_COMMENT="${INPUT_POST_PR_COMMENT:-false}"
 
+# Extract PR number from GITHUB_REF (e.g. refs/pull/123/merge -> 123)
+if [[ "${GITHUB_REF}" =~ ^refs/pull/([0-9]+)/ ]]; then
+  export GITHUB_PR_NUMBER="${BASH_REMATCH[1]}"
+fi
+
 # Enable local tools (git operations) and set working directory
 export ENABLE_LOCAL_TOOLS=true
 export LOCAL_TOOLS_WORKING_DIR="${GITHUB_WORKSPACE:-$(pwd)}"
