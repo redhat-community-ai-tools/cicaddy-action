@@ -14,9 +14,14 @@ case "${AI_PROVIDER}" in
   claude|anthropic) export ANTHROPIC_API_KEY="${INPUT_AI_API_KEY}" ;;
 esac
 
-export AI_TASK_FILE="${INPUT_TASK_FILE}"
+# Resolve file paths to absolute before cd into .cicaddy/ subdirectory
+WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
+
+_to_abs() { [[ -n "$1" && "$1" != /* ]] && echo "${WORKSPACE}/$1" || echo "$1"; }
+
+export AI_TASK_FILE="$(_to_abs "${INPUT_TASK_FILE}")"
 export AI_TASK_PROMPT="${INPUT_TASK_PROMPT}"
-export REPORT_TEMPLATE="${INPUT_REPORT_TEMPLATE}"
+export REPORT_TEMPLATE="$(_to_abs "${INPUT_REPORT_TEMPLATE}")"
 export MCP_SERVERS_CONFIG="${INPUT_MCP_SERVERS_CONFIG:-[]}"
 export SLACK_WEBHOOK_URL="${INPUT_SLACK_WEBHOOK_URL}"
 export GITHUB_TOKEN="${INPUT_GITHUB_TOKEN:-$GITHUB_TOKEN}"
