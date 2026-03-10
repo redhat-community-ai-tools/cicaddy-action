@@ -29,10 +29,10 @@ jobs:
         uses: ./
         id: report
         with:
-          ai-provider: gemini
-          ai-model: gemini-2.5-flash
-          ai-api-key: ${{ secrets.AI_API_KEY }}
-          task-file: tasks/changelog_report.yml
+          ai_provider: gemini
+          ai_model: gemini-2.5-flash
+          ai_api_key: ${{ secrets.AI_API_KEY }}
+          task_file: tasks/changelog_report.yml
         env:
           FROM_TAG: ${{ inputs.from_tag || '' }}
           TO_TAG: ${{ inputs.to_tag || github.event.release.tag_name || 'HEAD' }}
@@ -42,12 +42,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: changelog-report
-          path: ${{ steps.report.outputs.report-html }}
+          path: ${{ steps.report.outputs.report_html }}
 
       - name: Prepare Pages
         run: |
           mkdir -p _site
-          cp "${{ steps.report.outputs.report-html }}" _site/index.html
+          cp "${{ steps.report.outputs.report_html }}" _site/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

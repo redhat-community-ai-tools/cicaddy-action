@@ -5,44 +5,44 @@ branding:
   color: 'blue'
 
 inputs:
-  ai-provider:
+  ai_provider:
     description: 'AI provider: gemini, openai, claude'
     required: true
-  ai-model:
+  ai_model:
     description: 'Model identifier'
     required: true
-  ai-api-key:
+  ai_api_key:
     description: 'AI provider API key'
     required: true
-  task-file:
+  task_file:
     description: 'Path to DSPy YAML task file'
     required: false
-  task-prompt:
+  task_prompt:
     description: 'Inline task prompt (alternative to task-file)'
     required: false
-  report-template:
+  report_template:
     description: 'Path to custom HTML report template'
     required: false
-  mcp-servers-config:
+  mcp_servers_config:
     description: 'JSON array of MCP server configs (optional, for future use)'
     required: false
     default: '[]'
-  slack-webhook-url:
+  slack_webhook_url:
     description: 'Slack webhook URL for notifications'
     required: false
-  post-pr-comment:
+  post_pr_comment:
     description: 'Post analysis results as PR comment (requires github-token with pull-requests: write)'
     required: false
     default: 'false'
-  github-token:
+  github_token:
     description: 'GitHub token for API access'
     required: false
     default: ${{ github.token }}
 
 outputs:
-  report-html:
+  report_html:
     description: 'Path to generated HTML report'
-  report-json:
+  report_json:
     description: 'Path to JSON analysis result'
   summary:
     description: 'Brief text summary'

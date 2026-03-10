@@ -18,10 +18,12 @@ jobs:
 
       - name: Build MCP config
         id: mcp
+        env:
+          CONTEXT7_KEY: ${{ secrets.CONTEXT7_API_KEY }}
         run: |
           # Context7 is optional — only include if secret is configured
-          if [ -n "${{ secrets.CONTEXT7_API_KEY }}" ]; then
-            echo 'config=[{"name":"Context7","protocol":"http","endpoint":"https://mcp.context7.com/mcp","headers":{"CONTEXT7_API_KEY":"${{ secrets.CONTEXT7_API_KEY }}"},"timeout":300,"idle_timeout":60}]' >> "$GITHUB_OUTPUT"
+          if [ -n "${CONTEXT7_KEY}" ]; then
+            echo "config=[{\"name\":\"Context7\",\"protocol\":\"http\",\"endpoint\":\"https://mcp.context7.com/mcp\",\"headers\":{\"CONTEXT7_API_KEY\":\"${CONTEXT7_KEY}\"},\"timeout\":300,\"idle_timeout\":60}]" >> "$GITHUB_OUTPUT"
           else
             echo 'config=[]' >> "$GITHUB_OUTPUT"
           fi
@@ -30,13 +32,13 @@ jobs:
         uses: ./
         id: review
         with:
-          ai-provider: gemini
-          ai-model: gemini-3-flash-preview
-          ai-api-key: ${{ secrets.AI_API_KEY }}
-          task-file: tasks/pr_review.yml
-          post-pr-comment: 'true'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          mcp-servers-config: ${{ steps.mcp.outputs.config }}
+          ai_provider: gemini
+          ai_model: gemini-3-flash-preview
+          ai_api_key: ${{ secrets.AI_API_KEY }}
+          task_file: tasks/pr_review.yml
+          post_pr_comment: 'true'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          mcp_servers_config: ${{ steps.mcp.outputs.config }}
         env:
           ANALYSIS_FOCUS: "general"
           GIT_DIFF_CONTEXT_LINES: "15"

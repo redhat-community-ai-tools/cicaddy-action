@@ -31,10 +31,10 @@ jobs:
 
       - uses: redhat-community-ai-tools/cicaddy-action@v0
         with:
-          ai-provider: gemini
-          ai-model: gemini-2.5-flash
-          ai-api-key: ${{ secrets.AI_API_KEY }}
-          task-file: tasks/changelog_report.yml
+          ai_provider: gemini
+          ai_model: gemini-2.5-flash
+          ai_api_key: ${{ secrets.AI_API_KEY }}
+          task_file: tasks/changelog_report.yml
 ```
 
 ### AI PR Review
@@ -59,35 +59,35 @@ jobs:
 
       - uses: redhat-community-ai-tools/cicaddy-action@v0
         with:
-          ai-provider: gemini
-          ai-model: gemini-3-flash-preview
-          ai-api-key: ${{ secrets.AI_API_KEY }}
-          task-file: tasks/pr_review.yml
-          post-pr-comment: 'true'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          ai_provider: gemini
+          ai_model: gemini-3-flash-preview
+          ai_api_key: ${{ secrets.AI_API_KEY }}
+          task_file: tasks/pr_review.yml
+          post_pr_comment: 'true'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Inputs
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `ai-provider` | Yes | AI provider: `gemini`, `openai`, `claude` |
-| `ai-model` | Yes | Model identifier |
-| `ai-api-key` | Yes | AI provider API key |
-| `task-file` | No | Path to DSPy YAML task file |
-| `task-prompt` | No | Inline task prompt (alternative to task-file) |
-| `report-template` | No | Path to custom HTML report template |
-| `mcp-servers-config` | No | JSON array of MCP server configs |
-| `slack-webhook-url` | No | Slack webhook URL for notifications |
-| `post-pr-comment` | No | Post results as PR comment (default: `false`) |
-| `github-token` | No | GitHub token (default: `${{ github.token }}`) |
+| `ai_provider` | Yes | AI provider: `gemini`, `openai`, `claude` |
+| `ai_model` | Yes | Model identifier |
+| `ai_api_key` | Yes | AI provider API key |
+| `task_file` | No | Path to DSPy YAML task file |
+| `task_prompt` | No | Inline task prompt (alternative to task_file) |
+| `report_template` | No | Path to custom HTML report template |
+| `mcp_servers_config` | No | JSON array of MCP server configs |
+| `slack_webhook_url` | No | Slack webhook URL for notifications |
+| `post_pr_comment` | No | Post results as PR comment (default: `false`) |
+| `github_token` | No | GitHub token (default: `${{ github.token }}`) |
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
-| `report-html` | Path to generated HTML report |
-| `report-json` | Path to JSON analysis result |
+| `report_html` | Path to generated HTML report |
+| `report_json` | Path to JSON analysis result |
 | `summary` | Brief text summary |
 
 ## Custom Tasks
