@@ -21,7 +21,7 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -39,7 +39,7 @@ jobs:
           REPORT_TITLE: "Cicaddy Action — Release Update"
 
       - name: Upload report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: changelog-report
           path: ${{ steps.report.outputs.report_html }}
@@ -50,7 +50,7 @@ jobs:
           cp "${{ steps.report.outputs.report_html }}" _site/index.html
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: _site
 
