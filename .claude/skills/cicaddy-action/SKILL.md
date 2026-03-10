@@ -136,10 +136,22 @@ can reference them as bash variables (`INPUT_AI_PROVIDER`, `INPUT_AI_API_KEY`, e
 
 1. Exports `AI_PROVIDER` and `AI_MODEL` from `INPUT_*` vars
 2. Maps `INPUT_AI_API_KEY` to provider-specific env var (`GEMINI_API_KEY`, etc.)
-3. Extracts `GITHUB_PR_NUMBER` from `GITHUB_REF` (`refs/pull/<N>/merge`)
-4. Creates `.cicaddy/` subdirectory and `cd`s into it (cicaddy writes reports
+3. Resolves `AI_TASK_FILE` and `REPORT_TEMPLATE` to absolute paths (required
+   because step 5 changes the working directory)
+4. Extracts `GITHUB_PR_NUMBER` from `GITHUB_REF` (`refs/pull/<N>/merge`)
+5. Creates `.cicaddy/` subdirectory and `cd`s into it (cicaddy writes reports
    to `../` relative to cwd; this ensures `../` resolves to the writable workspace)
-5. Runs `cicaddy run`
+6. Runs `cicaddy run`
+
+### Known Pitfalls
+
+- **Relative paths break after `cd .cicaddy/`**: Any file path input (task file,
+  report template) must be resolved to an absolute path before the `cd`. The
+  entrypoint handles this with a `_to_abs` helper. If new file-path inputs are
+  added, they must also use this helper.
+- **Secrets in workflow `run:` blocks**: Never use `${{ secrets.* }}` directly
+  in `run:` shell blocks. Pass secrets via `env:` to avoid literal interpolation
+  in logs. See `.github/workflows/pr-review.yml` for the correct pattern.
 
 ## Plugin Architecture
 
