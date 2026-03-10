@@ -30,6 +30,14 @@ fi
 # Enable local tools (git operations) and set working directory
 export ENABLE_LOCAL_TOOLS=true
 export LOCAL_TOOLS_WORKING_DIR="${GITHUB_WORKSPACE:-$(pwd)}"
+export GIT_WORKING_DIRECTORY="${GITHUB_WORKSPACE:-$(pwd)}"
+
+# Cicaddy saves reports/logs to "../" relative to cwd.
+# GitHub Actions sets workdir to /github/workspace (not writable parent).
+# Create a subdirectory so "../" resolves back to the workspace.
+CICADDY_RUN_DIR="${GITHUB_WORKSPACE:-.}/.cicaddy"
+mkdir -p "${CICADDY_RUN_DIR}"
+cd "${CICADDY_RUN_DIR}"
 
 # Run cicaddy
 cicaddy run
