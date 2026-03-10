@@ -1,9 +1,8 @@
 #!/bin/bash
 set -e
 
-# GitHub Actions converts input names to INPUT_<UPPERCASED_WITH_UNDERSCORES>
-# e.g. input "ai-provider" becomes INPUT_AI_PROVIDER (hyphens to underscores)
-# We only need the underscore form.
+# GitHub Actions sets inputs as INPUT_<UPPERCASED_NAME> env vars.
+# Input names use underscores (e.g. ai_provider -> INPUT_AI_PROVIDER).
 
 export AI_PROVIDER="${INPUT_AI_PROVIDER}"
 export AI_MODEL="${INPUT_AI_MODEL}"
