@@ -94,19 +94,104 @@ jobs:
 
 Create DSPy YAML task files to define custom analysis workflows. See `tasks/changelog_report.yml` and `tasks/pr_review.yml` for examples.
 
-## Development
+## Local Development
+
+### Running cicaddy locally
+
+You can run cicaddy locally to review PRs without GitHub Actions. This is useful
+for testing changes to the plugin or reviewing PRs in other repositories.
+
+**1. Install the plugin in editable mode:**
 
 ```bash
-# Install
 uv pip install -e ".[test]"
+```
 
-# Test
+**2. Create an env file** (e.g. `.env.my-review`):
+
+```bash
+# AI Provider
+AI_PROVIDER=gemini
+AI_MODEL=gemini-3-flash-preview
+GEMINI_API_KEY=<your-gemini-api-key>
+
+# GitHub Configuration
+GITHUB_TOKEN=<your-github-token>
+GITHUB_REPOSITORY=owner/repo
+GITHUB_EVENT_NAME=pull_request
+GITHUB_PR_NUMBER=42
+
+# Agent Settings
+POST_PR_COMMENT=true
+ENABLE_LOCAL_TOOLS=true
+LOCAL_TOOLS_WORKING_DIR=.
+
+# Optional: MCP servers (e.g. Context7 for library docs)
+MCP_SERVERS_CONFIG=[{"name": "context7", "protocol": "http", "endpoint": "https://mcp.context7.com/mcp", "headers": {"CONTEXT7_API_KEY": "<your-key>"}}]
+
+# Logging
+LOG_LEVEL=INFO
+```
+
+**3. Generate a GitHub token:**
+
+The token needs `repo` scope for private repos or `public_repo` for public repos.
+When `POST_PR_COMMENT=true`, the token must also have write access to pull requests
+(the `repo` scope includes this; for fine-grained tokens, enable "Pull requests: Write").
+
+```bash
+# Use your existing gh CLI token
+gh auth token
+```
+
+> **Warning:** Never commit env files containing secrets. The `.env.*` pattern is
+> already in `.gitignore`, but if you use a different naming convention (e.g. `.env`),
+> make sure it is also ignored.
+
+**4. Run the review:**
+
+```bash
+uv run cicaddy run --env-file .env.my-review
+```
+
+The agent auto-detects `github_pr` type from the env vars, fetches the PR diff,
+runs AI analysis, and optionally posts a comment on the PR.
+
+**5. Validate configuration** (optional):
+
+```bash
+uv run cicaddy validate --env-file .env.my-review
+```
+
+### Environment Variables Reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AI_PROVIDER` | Yes | `gemini`, `openai`, or `claude` |
+| `AI_MODEL` | Yes | Model identifier (e.g. `gemini-3-flash-preview`) |
+| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Yes | API key matching the provider |
+| `GITHUB_TOKEN` | Yes | GitHub personal access token |
+| `GITHUB_REPOSITORY` | Yes | Target repo in `owner/repo` format |
+| `GITHUB_EVENT_NAME` | No | Set to `pull_request` for auto-detection (optional if `GITHUB_PR_NUMBER` is set) |
+| `GITHUB_PR_NUMBER` | Yes | PR number to review |
+| `POST_PR_COMMENT` | No | Post results as PR comment (`true`/`false`) |
+| `AI_TASK_FILE` | No | Path to DSPy YAML task file for custom workflows |
+| `GIT_DIFF_CONTEXT_LINES` | No | Number of context lines in diffs (default: `10`) |
+| `ENABLE_LOCAL_TOOLS` | No | Enable local git tools (`true`/`false`) |
+| `LOCAL_TOOLS_WORKING_DIR` | No | Working directory for local tools |
+| `MCP_SERVERS_CONFIG` | No | JSON array of MCP server configurations |
+| `LOG_LEVEL` | No | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+
+### Build & Test
+
+```bash
+# Run tests with coverage
 pytest tests/ -q --cov=src/cicaddy_github
 
-# Lint
+# Run all linters (pre-commit)
 pre-commit run --all-files
 
-# Docker
+# Build Docker image
 docker build -t cicaddy-action:test .
 ```
 

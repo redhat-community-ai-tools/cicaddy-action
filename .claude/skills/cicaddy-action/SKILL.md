@@ -230,6 +230,78 @@ context: |
     github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+## Running Locally
+
+Cicaddy can run locally to review PRs without GitHub Actions. Create an env
+file and use `uv run cicaddy run --env-file <file>`.
+
+### Env File Template (PR Review)
+
+```bash
+# AI Provider
+AI_PROVIDER=gemini
+AI_MODEL=gemini-3-flash-preview
+GEMINI_API_KEY=<key>
+
+# GitHub Configuration
+GITHUB_TOKEN=<token>            # gh auth token
+GITHUB_REPOSITORY=owner/repo
+GITHUB_EVENT_NAME=pull_request
+GITHUB_PR_NUMBER=42
+
+# Agent Settings
+POST_PR_COMMENT=true
+ENABLE_LOCAL_TOOLS=true
+LOCAL_TOOLS_WORKING_DIR=.
+
+# Optional: MCP servers
+MCP_SERVERS_CONFIG=[{"name": "context7", "protocol": "http", "endpoint": "https://mcp.context7.com/mcp", "headers": {"CONTEXT7_API_KEY": "<key>"}}]
+
+LOG_LEVEL=INFO
+```
+
+### Key Commands
+
+```bash
+# Install plugin in editable mode (uses live code)
+uv pip install -e ".[test]"
+
+# Run a PR review
+uv run cicaddy run --env-file .env.my-review
+
+# Validate configuration
+uv run cicaddy validate --env-file .env.my-review
+```
+
+### Agent Type Detection
+
+The agent type is auto-detected by `_detect_github_agent_type` in
+`src/cicaddy_github/github_integration/detector.py` (registered at priority 40):
+- `GITHUB_EVENT_NAME=pull_request` → `github_pr`
+- `GITHUB_PR_NUMBER` set (fallback) → `github_pr`
+- Otherwise → falls through to core detectors
+
+### Additional Env Vars
+
+- `AI_TASK_FILE`: Path to DSPy YAML task file for custom workflows
+- `GIT_DIFF_CONTEXT_LINES`: Number of context lines in diffs (default: 10)
+
+### MCP Server Config Format
+
+JSON array. Each server object has:
+- `name` (string): Server identifier
+- `protocol` (string): `http`, `sse`, `stdio`, or `websocket`
+- `endpoint` (string): Server URL
+- `headers` (object, optional): HTTP headers (e.g. API keys)
+
+### Notes
+
+- **Never commit env files with secrets.** Use `.env.*` pattern (already in `.gitignore`)
+- `POST_PR_COMMENT=true` requires a token with write access to pull requests
+  (`repo` scope includes this; for fine-grained tokens, enable "Pull requests: Write")
+- The `github_pr` agent updates its PR comment in-place on re-runs
+- Use `gh auth token` to generate a GitHub token quickly
+
 ## Code Style
 
 - Python 3.11+ with type hints
