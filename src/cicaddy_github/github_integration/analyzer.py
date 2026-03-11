@@ -173,16 +173,66 @@ class GitHubAnalyzer:
             "number": pr.number,
         }
 
-    async def post_pr_comment(self, pr_number: int, body: str) -> None:
-        """Post a comment on a pull request.
+    async def post_pr_comment(
+        self, pr_number: int, body: str, comment_marker: str | None = None
+    ) -> None:
+        """Post or update a comment on a pull request.
+
+        When *comment_marker* is provided the method looks for an existing
+        comment whose body starts with that marker.  If found, the previous
+        analysis is collapsed into a ``<details>`` block and the comment is
+        updated in-place (similar to CodeRabbit / Qodo persistent review).
+        Otherwise a new comment is created.
 
         Args:
             pr_number: Pull request number.
             body: Comment body text.
+            comment_marker: Optional marker that identifies the bot comment
+                (e.g. ``"## AI Code Review"``).
         """
         pr = self.repo.get_pull(pr_number)
+
+        if comment_marker:
+            existing = self._find_bot_comment(pr, comment_marker)
+            if existing:
+                updated = self._build_updated_body(existing.body, body)
+                existing.edit(updated)
+                logger.info(f"Updated existing comment (id={existing.id}) on PR #{pr_number}")
+                return
+
         pr.create_issue_comment(body)
         logger.info(f"Posted comment on PR #{pr_number}")
+
+    @staticmethod
+    def _find_bot_comment(pr, marker: str):
+        """Return the first issue comment whose body starts with *marker*."""
+        for comment in pr.get_issue_comments():
+            if comment.body and comment.body.startswith(marker):
+                return comment
+        return None
+
+    @staticmethod
+    def _build_updated_body(old_body: str, new_body: str) -> str:
+        """Prepend *new_body* and collapse the previous analysis.
+
+        Any existing collapsed history is preserved so the full review trail
+        is kept inside nested ``<details>`` blocks.
+        """
+        history_tag = "\n<details>\n<summary><b>Previous analyses</b></summary>\n"
+
+        if history_tag in old_body:
+            current_section, existing_history = old_body.split(history_tag, 1)
+            # Strip trailing </details> so we can re-wrap
+            existing_history = existing_history.rstrip()
+            if existing_history.endswith("</details>"):
+                existing_history = existing_history[: -len("</details>")].rstrip()
+            collapsed = (
+                f"{history_tag}\n{current_section.strip()}\n\n{existing_history}\n\n</details>\n"
+            )
+        else:
+            collapsed = f"{history_tag}\n{old_body.strip()}\n\n</details>\n"
+
+        return f"{new_body}\n{collapsed}"
 
     def close(self):
         """Close the GitHub API connection."""

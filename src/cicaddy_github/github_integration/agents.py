@@ -14,6 +14,8 @@ from cicaddy_github.security.leak_detector import LeakDetector
 
 logger = get_logger(__name__)
 
+BOT_COMMENT_MARKER = "<!-- cicaddy-action -->"
+
 
 class GitHubTaskAgent(BaseAIAgent):
     """AI Agent for scheduled tasks and changelog generation."""
@@ -224,12 +226,14 @@ Please provide your comprehensive analysis in markdown format.
                 analysis_result["ai_analysis"]
             )
 
-        # Post PR comment if enabled
+        # Post PR comment if enabled (updates existing bot comment in-place)
         post_comment = getattr(self.settings, "post_pr_comment", False)
         if post_comment and self.platform_analyzer and self.pr_number:
             try:
                 comment = self._format_pr_comment(analysis_result)
-                await self.platform_analyzer.post_pr_comment(int(self.pr_number), comment)
+                await self.platform_analyzer.post_pr_comment(
+                    int(self.pr_number), comment, comment_marker=BOT_COMMENT_MARKER
+                )
                 logger.info(f"Posted analysis to PR #{self.pr_number}")
             except Exception as e:
                 logger.error(f"Failed to post PR comment: {e}", exc_info=True)
@@ -238,16 +242,21 @@ Please provide your comprehensive analysis in markdown format.
         await super().send_notifications(report, analysis_result)
 
     def _format_pr_comment(self, analysis_result: dict[str, Any]) -> str:
-        """Format analysis results as a PR comment."""
-        comment = "## AI Code Review\n\n"
+        """Format analysis results as a PR comment.
+
+        The hidden marker is prepended so the bot can find and update its own
+        comment later.  No heading is injected — the AI analysis output already
+        contains its own structure.
+        """
+        comment = f"{BOT_COMMENT_MARKER}\n"
 
         if "ai_analysis" in analysis_result:
-            comment += analysis_result["ai_analysis"] + "\n\n"
+            comment += analysis_result["ai_analysis"] + "\n"
 
         comment += (
             "\n---\n"
-            "Generated with [cicaddy-action]"
-            "(https://github.com/redhat-community-ai-tools/cicaddy-action)"
+            "*Generated with [cicaddy-action]"
+            "(https://github.com/redhat-community-ai-tools/cicaddy-action)*"
         )
         return comment
 

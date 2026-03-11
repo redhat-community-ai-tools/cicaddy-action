@@ -164,3 +164,123 @@ class TestPullRequestOperations:
         assert result["title"] == "Test PR"
         assert result["author"]["name"] == "testuser"
         assert result["target_branch"] == "main"
+
+
+class TestPostPRComment:
+    """Test PR comment posting and update-in-place."""
+
+    @pytest.mark.asyncio
+    async def test_creates_new_comment_without_marker(self, analyzer, mock_github):
+        """Without a marker, always creates a new comment."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.post_pr_comment(42, "new body")
+
+        mock_pr.create_issue_comment.assert_called_once_with("new body")
+
+    @pytest.mark.asyncio
+    async def test_creates_new_comment_when_no_existing(self, analyzer, mock_github):
+        """With a marker but no existing comment, creates a new one."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+        mock_pr.get_issue_comments.return_value = []
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.post_pr_comment(42, "new body", comment_marker="## Bot")
+
+        mock_pr.create_issue_comment.assert_called_once_with("new body")
+
+    @pytest.mark.asyncio
+    async def test_updates_existing_comment_in_place(self, analyzer, mock_github):
+        """Existing bot comment is edited, not deleted and recreated."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+
+        old_comment = MagicMock()
+        old_comment.body = "## Bot\n\nold analysis"
+        old_comment.id = 99
+        mock_pr.get_issue_comments.return_value = [old_comment]
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.post_pr_comment(42, "## Bot\n\nnew analysis", comment_marker="## Bot")
+
+        old_comment.edit.assert_called_once()
+        mock_pr.create_issue_comment.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_updated_body_contains_collapsed_previous(self, analyzer, mock_github):
+        """The edited body collapses the old analysis in a <details> block."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+
+        old_comment = MagicMock()
+        old_comment.body = "## Bot\n\nold analysis"
+        old_comment.id = 99
+        mock_pr.get_issue_comments.return_value = [old_comment]
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.post_pr_comment(42, "## Bot\n\nnew analysis", comment_marker="## Bot")
+
+        edited_body = old_comment.edit.call_args[0][0]
+        assert "## Bot\n\nnew analysis" in edited_body
+        assert "<summary><b>Previous analyses</b></summary>" in edited_body
+        assert "old analysis" in edited_body
+
+    @pytest.mark.asyncio
+    async def test_ignores_unrelated_comments(self, analyzer, mock_github):
+        """Unrelated comments are not touched."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+
+        other = MagicMock()
+        other.body = "LGTM!"
+        mock_pr.get_issue_comments.return_value = [other]
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.post_pr_comment(42, "## Bot\n\nnew", comment_marker="## Bot")
+
+        other.edit.assert_not_called()
+        mock_pr.create_issue_comment.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_skips_comment_with_none_body(self, analyzer, mock_github):
+        """Comment with None body is safely skipped."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+
+        null_comment = MagicMock()
+        null_comment.body = None
+        mock_pr.get_issue_comments.return_value = [null_comment]
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.post_pr_comment(42, "## Bot\n\nnew", comment_marker="## Bot")
+
+        null_comment.edit.assert_not_called()
+        mock_pr.create_issue_comment.assert_called_once()
+
+
+class TestBuildUpdatedBody:
+    """Test the history collapsing logic."""
+
+    def test_first_update_collapses_old_body(self):
+        old = "## Bot\n\nfirst analysis\n\n---\nfooter"
+        new = "## Bot\n\nsecond analysis\n\n---\nfooter"
+
+        result = GitHubAnalyzer._build_updated_body(old, new)
+
+        assert result.startswith("## Bot\n\nsecond analysis")
+        assert "<summary><b>Previous analyses</b></summary>" in result
+        assert "first analysis" in result
+
+    def test_preserves_existing_history(self):
+        """Multiple updates accumulate history inside the collapsed block."""
+        first = "## Bot\n\nfirst"
+        second = GitHubAnalyzer._build_updated_body(first, "## Bot\n\nsecond")
+        third = GitHubAnalyzer._build_updated_body(second, "## Bot\n\nthird")
+
+        assert third.startswith("## Bot\n\nthird")
+        assert "second" in third
+        assert "first" in third
+        assert third.count("<summary><b>Previous analyses</b></summary>") == 1
