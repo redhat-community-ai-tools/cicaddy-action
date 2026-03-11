@@ -15,7 +15,7 @@ plugin extends cicaddy with GitHub-specific agents, tools, and configuration.
 
 ## Working Directory
 
-- **Repository root**: `/home/waynesun/workspace/ai/cicaddy-action`
+- **Repository root**: `cicaddy-action/` (project root)
 - **Plugin source**: `src/cicaddy_github/`
 - **Task definitions**: `tasks/`
 - **GitHub workflows**: `.github/workflows/`
@@ -220,7 +220,7 @@ context: |
 ## Workflow Usage
 
 ```yaml
-- uses: waynesun09/cicaddy-action@v0
+- uses: redhat-community-ai-tools/cicaddy-action@v0
   with:
     ai_provider: gemini
     ai_model: gemini-3-flash-preview

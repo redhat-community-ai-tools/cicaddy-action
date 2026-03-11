@@ -32,5 +32,8 @@ Thumbs.db
 .env.*
 .env.local
 
+# Claude Code local settings (contains developer-specific paths)
+.claude/settings.local.json
+
 # UV
 uv.lock

@@ -14,14 +14,34 @@ case "${AI_PROVIDER}" in
   claude|anthropic) export ANTHROPIC_API_KEY="${INPUT_AI_API_KEY}" ;;
 esac
 
-# Resolve file paths to absolute before cd into .cicaddy/ subdirectory
+# Resolve file paths to absolute before cd into .cicaddy/ subdirectory.
+# Rejects absolute paths and parent directory traversal to prevent
+# reading files outside the workspace.
 WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
 
-_to_abs() { [[ -n "$1" && "$1" != /* ]] && echo "${WORKSPACE}/$1" || echo "$1"; }
+_to_abs() {
+  local path="$1"
+  [[ -z "$path" ]] && return
+  if [[ "$path" == /* ]]; then
+    echo "ERROR: Absolute paths not allowed: $path" >&2
+    exit 1
+  fi
+  local full_path="${WORKSPACE}/${path}"
+  # Resolve symlinks and .. components, then verify the result is under WORKSPACE
+  if [[ "$(realpath -m "$full_path")" != "${WORKSPACE}"* ]]; then
+    echo "ERROR: Path traversal detected: $path" >&2
+    exit 1
+  fi
+  echo "$full_path"
+}
 
-export AI_TASK_FILE="$(_to_abs "${INPUT_TASK_FILE}")"
+if [[ -n "${INPUT_TASK_FILE}" ]]; then
+  export AI_TASK_FILE="$(_to_abs "${INPUT_TASK_FILE}")"
+fi
 export AI_TASK_PROMPT="${INPUT_TASK_PROMPT}"
-export REPORT_TEMPLATE="$(_to_abs "${INPUT_REPORT_TEMPLATE}")"
+if [[ -n "${INPUT_REPORT_TEMPLATE}" ]]; then
+  export REPORT_TEMPLATE="$(_to_abs "${INPUT_REPORT_TEMPLATE}")"
+fi
 export MCP_SERVERS_CONFIG="${INPUT_MCP_SERVERS_CONFIG:-[]}"
 export SLACK_WEBHOOK_URL="${INPUT_SLACK_WEBHOOK_URL}"
 export GITHUB_TOKEN="${INPUT_GITHUB_TOKEN:-$GITHUB_TOKEN}"

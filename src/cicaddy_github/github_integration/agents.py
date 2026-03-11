@@ -236,7 +236,10 @@ Please provide your comprehensive analysis in markdown format.
                 )
                 logger.info(f"Posted analysis to PR #{self.pr_number}")
             except Exception as e:
-                logger.error(f"Failed to post PR comment: {e}", exc_info=True)
+                logger.error(
+                    f"Failed to post PR comment: {self.leak_detector.sanitize_text(str(e))}"
+                )
+                logger.debug("PR comment post traceback:", exc_info=True)
 
         # Send Slack notification using parent class
         await super().send_notifications(report, analysis_result)

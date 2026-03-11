@@ -1,9 +1,12 @@
 """GitHub repository analyzer using PyGithub API and local git commands."""
 
+import html
 import logging
 import subprocess
 
 from github import Auth, Github
+
+from cicaddy_github.validation import validate_git_ref
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +60,8 @@ class GitHubAnalyzer:
             List of tag names, most recent first.
         """
         try:
+            if not isinstance(limit, int) or limit <= 0:
+                raise ValueError(f"limit must be a positive integer, got {limit!r}")
             output = self._run_git(["tag", "--sort=-version:refname", f"--count={limit}"])
             if not output:
                 return []
@@ -76,6 +81,8 @@ class GitHubAnalyzer:
             Commit log between tags.
         """
         try:
+            validate_git_ref(from_tag, "from_tag")
+            validate_git_ref(to_tag, "to_tag")
             return self._run_git(["log", f"{from_tag}..{to_tag}", "--oneline", "--no-merges"])
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to get tag diff {from_tag}..{to_tag}: {e}")
@@ -92,6 +99,8 @@ class GitHubAnalyzer:
             Diff stat output showing files changed.
         """
         try:
+            validate_git_ref(from_tag, "from_tag")
+            validate_git_ref(to_tag, "to_tag")
             return self._run_git(["diff", "--stat", f"{from_tag}..{to_tag}"])
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to get diff stat {from_tag}..{to_tag}: {e}")
@@ -123,6 +132,8 @@ class GitHubAnalyzer:
             Commit log output.
         """
         try:
+            if not isinstance(since_days, int) or since_days <= 0:
+                raise ValueError(f"since_days must be a positive integer, got {since_days!r}")
             return self._run_git(
                 ["log", f"--since={since_days} days ago", "--oneline", "--no-merges"]
             )
@@ -145,8 +156,9 @@ class GitHubAnalyzer:
 
         diff_parts = []
         for f in files:
-            diff_parts.append(f"--- a/{f.filename}")
-            diff_parts.append(f"+++ b/{f.filename}")
+            safe_name = html.escape(f.filename, quote=True)
+            diff_parts.append(f"--- a/{safe_name}")
+            diff_parts.append(f"+++ b/{safe_name}")
             if f.patch:
                 diff_parts.append(f.patch)
             diff_parts.append("")

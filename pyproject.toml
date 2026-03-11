@@ -10,12 +10,16 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}
 authors = [{name = "Wayne Sun"}]
-
 dependencies = [
     "cicaddy==0.3.0",
     "PyGithub>=2.1.0",
     "detect-secrets>=1.4.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/redhat-community-ai-tools/cicaddy-action"
+Repository = "https://github.com/redhat-community-ai-tools/cicaddy-action.git"
+Issues = "https://github.com/redhat-community-ai-tools/cicaddy-action/issues"
 
 [project.optional-dependencies]
 test = [

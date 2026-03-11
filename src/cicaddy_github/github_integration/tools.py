@@ -10,6 +10,8 @@ import subprocess
 
 from cicaddy.tools import tool
 
+from cicaddy_github.validation import validate_git_ref, validate_positive_int
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,6 +40,7 @@ def get_recent_tags(limit: int = 5) -> str:
         limit: Maximum number of tags to return
     """
     try:
+        validate_positive_int(limit, "limit")
         output = _run_git(["tag", "--sort=-version:refname", f"--count={limit}"])
         if not output:
             return "No tags found in this repository."
@@ -55,6 +58,8 @@ def get_tag_diff(from_tag: str, to_tag: str = "HEAD") -> str:
         to_tag: End tag or HEAD
     """
     try:
+        validate_git_ref(from_tag, "from_tag")
+        validate_git_ref(to_tag, "to_tag")
         output = _run_git(["log", f"{from_tag}..{to_tag}", "--oneline", "--no-merges"])
         if not output:
             return f"No commits found between {from_tag} and {to_tag}."
@@ -72,6 +77,8 @@ def get_diff_stat(from_tag: str, to_tag: str = "HEAD") -> str:
         to_tag: End tag or HEAD
     """
     try:
+        validate_git_ref(from_tag, "from_tag")
+        validate_git_ref(to_tag, "to_tag")
         output = _run_git(["diff", "--stat", f"{from_tag}..{to_tag}"])
         if not output:
             return f"No file changes found between {from_tag} and {to_tag}."
@@ -115,6 +122,7 @@ def get_commit_log(since_days: int = 30) -> str:
         since_days: Number of days to look back
     """
     try:
+        validate_positive_int(since_days, "since_days")
         output = _run_git(["log", f"--since={since_days} days ago", "--oneline", "--no-merges"])
         if not output:
             return f"No commits found in the last {since_days} days."
