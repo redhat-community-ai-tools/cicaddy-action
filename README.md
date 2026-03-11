@@ -1,6 +1,6 @@
 # cicaddy-action
 
-GitHub Action that wraps [cicaddy](https://github.com/redhat-community-ai-tools/cicaddy) for running AI agent tasks in GitHub Actions workflows.
+GitHub Action that wraps [cicaddy](https://github.com/waynesun09/cicaddy) for running AI agent tasks in GitHub Actions workflows.
 
 ## Features
 

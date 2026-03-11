@@ -28,4 +28,4 @@ GitHub Action that wraps cicaddy for running AI agent tasks in GitHub Actions wo
 - Fixtures in `tests/conftest.py`
 
 ## Reference Repos
-- [cicaddy core](https://github.com/redhat-community-ai-tools/cicaddy)
+- [cicaddy core](https://github.com/waynesun09/cicaddy)
