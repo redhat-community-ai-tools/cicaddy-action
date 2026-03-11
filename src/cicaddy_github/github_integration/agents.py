@@ -43,6 +43,26 @@ def dedent_code_blocks(text: str) -> str:
     return _FENCED_CODE_BLOCK.sub(_dedent, text)
 
 
+# Matches output wrapped in a single ```markdown ... ``` fence.
+_MARKDOWN_WRAPPER = re.compile(
+    r"^\s*```(?:markdown|md)\s*\n(.*?)\n\s*```\s*$",
+    re.DOTALL | re.IGNORECASE,
+)
+
+
+def strip_markdown_wrapper(text: str) -> str:
+    """Strip a wrapping ```markdown fence from the entire AI output.
+
+    Some models interpret ``output_format: markdown`` as "wrap the response
+    in a markdown code fence", which causes GitHub to render the comment as
+    a literal code block instead of formatted markdown.
+    """
+    m = _MARKDOWN_WRAPPER.match(text.strip())
+    if m:
+        return m.group(1)
+    return text
+
+
 class GitHubTaskAgent(BaseAIAgent):
     """AI Agent for scheduled tasks and changelog generation."""
 
@@ -280,7 +300,8 @@ Please provide your comprehensive analysis in markdown format.
         comment = f"{BOT_COMMENT_MARKER_PR_REVIEW}\n"
 
         if "ai_analysis" in analysis_result:
-            comment += dedent_code_blocks(analysis_result["ai_analysis"]) + "\n"
+            cleaned = strip_markdown_wrapper(analysis_result["ai_analysis"])
+            comment += dedent_code_blocks(cleaned) + "\n"
 
         comment += (
             "\n<!-- cicaddy-footer -->\n---\n"

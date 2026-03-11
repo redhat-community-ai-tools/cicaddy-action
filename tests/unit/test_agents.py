@@ -1,6 +1,6 @@
-"""Tests for dedent_code_blocks in agents module."""
+"""Tests for dedent_code_blocks and strip_markdown_wrapper in agents module."""
 
-from cicaddy_github.github_integration.agents import dedent_code_blocks
+from cicaddy_github.github_integration.agents import dedent_code_blocks, strip_markdown_wrapper
 
 
 class TestDedentCodeBlocks:
@@ -72,3 +72,42 @@ class TestDedentCodeBlocks:
         assert result.startswith("* Item one\n")
         assert result.endswith("* Item two")
         assert "+added line" in result
+
+
+class TestStripMarkdownWrapper:
+    """Test stripping wrapping ```markdown fences from AI output."""
+
+    def test_strips_markdown_wrapper(self):
+        """Output wrapped in ```markdown is unwrapped."""
+        text = "```markdown\n### Summary\nSome analysis.\n```"
+        result = strip_markdown_wrapper(text)
+        assert result == "### Summary\nSome analysis."
+
+    def test_strips_md_wrapper(self):
+        """Output wrapped in ```md is also unwrapped."""
+        text = "```md\n## Title\nContent.\n```"
+        result = strip_markdown_wrapper(text)
+        assert result == "## Title\nContent."
+
+    def test_strips_case_insensitive(self):
+        """Output wrapped in ```Markdown or ```MD is also unwrapped."""
+        for tag in ("Markdown", "MARKDOWN", "MD", "Md"):
+            text = f"```{tag}\nContent here.\n```"
+            result = strip_markdown_wrapper(text)
+            assert result == "Content here.", f"Failed for tag: {tag}"
+
+    def test_no_change_without_wrapper(self):
+        """Plain markdown without wrapper is unchanged."""
+        text = "### Summary\nSome analysis."
+        assert strip_markdown_wrapper(text) == text
+
+    def test_preserves_internal_code_blocks(self):
+        """Code blocks inside the markdown wrapper are preserved."""
+        text = "```markdown\n### Example\n```python\nprint('hi')\n```\n```"
+        result = strip_markdown_wrapper(text)
+        assert "```python\nprint('hi')\n```" in result
+
+    def test_no_change_for_non_markdown_fence(self):
+        """A ```python wrapper is NOT stripped."""
+        text = "```python\nprint('hi')\n```"
+        assert strip_markdown_wrapper(text) == text
