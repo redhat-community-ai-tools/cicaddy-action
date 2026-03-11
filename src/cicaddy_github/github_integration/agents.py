@@ -14,7 +14,8 @@ from cicaddy_github.security.leak_detector import LeakDetector
 
 logger = get_logger(__name__)
 
-BOT_COMMENT_MARKER = "<!-- cicaddy-action -->"
+BOT_COMMENT_MARKER_PR_REVIEW = "<!-- cicaddy-action:pr-review -->"
+BOT_COMMENT_MARKER_TASK = "<!-- cicaddy-action:task -->"
 
 
 class GitHubTaskAgent(BaseAIAgent):
@@ -232,7 +233,7 @@ Please provide your comprehensive analysis in markdown format.
             try:
                 comment = self._format_pr_comment(analysis_result)
                 await self.platform_analyzer.post_pr_comment(
-                    int(self.pr_number), comment, comment_marker=BOT_COMMENT_MARKER
+                    int(self.pr_number), comment, comment_marker=BOT_COMMENT_MARKER_PR_REVIEW
                 )
                 logger.info(f"Posted analysis to PR #{self.pr_number}")
             except Exception as e:
@@ -248,7 +249,7 @@ Please provide your comprehensive analysis in markdown format.
         comment later.  No heading is injected — the AI analysis output already
         contains its own structure.
         """
-        comment = f"{BOT_COMMENT_MARKER}\n"
+        comment = f"{BOT_COMMENT_MARKER_PR_REVIEW}\n"
 
         if "ai_analysis" in analysis_result:
             comment += analysis_result["ai_analysis"] + "\n"
