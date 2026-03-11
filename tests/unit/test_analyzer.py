@@ -287,8 +287,8 @@ class TestBuildUpdatedBody:
 
     def test_strips_footer_from_collapsed_history(self):
         """Footer is removed from old content before collapsing."""
-        old = "## Bot\n\nold analysis\n\n---\n*Generated with bot*"
-        new = "## Bot\n\nnew analysis\n\n---\n*Generated with bot*"
+        old = "## Bot\n\nold analysis\n\n<!-- cicaddy-footer -->\n---\n*Generated with bot*"
+        new = "## Bot\n\nnew analysis\n\n<!-- cicaddy-footer -->\n---\n*Generated with bot*"
 
         result = GitHubAnalyzer._build_updated_body(old, new)
 
@@ -299,13 +299,23 @@ class TestBuildUpdatedBody:
         # But the new body's footer is preserved at the top level
         assert result.startswith("## Bot\n\nnew analysis")
 
+    def test_does_not_strip_markdown_hr_without_footer_marker(self):
+        """Markdown horizontal rules in AI output are preserved."""
+        old = "## Bot\n\nanalysis\n\n---\n\nmore analysis"
+        new = "## Bot\n\nnew"
+
+        result = GitHubAnalyzer._build_updated_body(old, new)
+
+        # The --- is NOT a footer (no cicaddy-footer marker), so full content is kept
+        assert "more analysis" in result
+
     def test_truncates_when_exceeding_max_length(self):
-        """History is dropped when result exceeds character limit."""
+        """History is dropped with truncation notice when exceeding limit."""
         old = "## Bot\n\n" + "x" * 40_000
         new = "## Bot\n\n" + "y" * 40_000
 
         result = GitHubAnalyzer._build_updated_body(old, new)
 
-        # Combined would exceed 65,000 so history should be dropped
-        assert result == new
+        assert result.startswith("## Bot\n\n" + "y" * 100)
         assert "Previous analyses" not in result
+        assert "[Older history truncated" in result

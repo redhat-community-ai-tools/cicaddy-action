@@ -214,12 +214,16 @@ class GitHubAnalyzer:
     # GitHub limits issue comments to 65,536 characters.
     MAX_COMMENT_LENGTH = 65_000
 
-    @staticmethod
-    def _strip_footer(body: str) -> str:
-        """Remove the trailing ``---`` footer from a comment body."""
-        # Footer starts with "\n---\n" followed by generated-with line
-        marker = "\n---\n"
-        idx = body.rfind(marker)
+    FOOTER_MARKER = "<!-- cicaddy-footer -->"
+
+    @classmethod
+    def _strip_footer(cls, body: str) -> str:
+        """Remove the trailing footer from a comment body.
+
+        Looks for the unique ``<!-- cicaddy-footer -->`` marker to avoid
+        accidentally stripping markdown horizontal rules in AI output.
+        """
+        idx = body.rfind(cls.FOOTER_MARKER)
         if idx != -1:
             return body[:idx].rstrip()
         return body.rstrip()
@@ -252,7 +256,10 @@ class GitHubAnalyzer:
 
         # Truncate history if the comment exceeds the character limit
         if len(result) > cls.MAX_COMMENT_LENGTH:
-            result = new_body
+            truncation_note = (
+                "\n\n*[Older history truncated to stay within GitHub character limit]*"
+            )
+            result = f"{new_body}{truncation_note}"
             logger.warning("Comment history truncated to stay within character limit")
 
         return result

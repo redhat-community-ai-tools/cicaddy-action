@@ -254,7 +254,7 @@ Please provide your comprehensive analysis in markdown format.
             comment += analysis_result["ai_analysis"] + "\n"
 
         comment += (
-            "\n---\n"
+            "\n<!-- cicaddy-footer -->\n---\n"
             "*Generated with [cicaddy-action]"
             "(https://github.com/redhat-community-ai-tools/cicaddy-action)*"
         )
