@@ -15,7 +15,6 @@ from cicaddy_github.security.leak_detector import LeakDetector
 logger = get_logger(__name__)
 
 BOT_COMMENT_MARKER_PR_REVIEW = "<!-- cicaddy-action:pr-review -->"
-BOT_COMMENT_MARKER_TASK = "<!-- cicaddy-action:task -->"
 
 
 class GitHubTaskAgent(BaseAIAgent):

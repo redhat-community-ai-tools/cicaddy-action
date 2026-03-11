@@ -211,18 +211,34 @@ class GitHubAnalyzer:
                 return comment
         return None
 
+    # GitHub limits issue comments to 65,536 characters.
+    MAX_COMMENT_LENGTH = 65_000
+
     @staticmethod
-    def _build_updated_body(old_body: str, new_body: str) -> str:
+    def _strip_footer(body: str) -> str:
+        """Remove the trailing ``---`` footer from a comment body."""
+        # Footer starts with "\n---\n" followed by generated-with line
+        marker = "\n---\n"
+        idx = body.rfind(marker)
+        if idx != -1:
+            return body[:idx].rstrip()
+        return body.rstrip()
+
+    @classmethod
+    def _build_updated_body(cls, old_body: str, new_body: str) -> str:
         """Prepend *new_body* and collapse the previous analysis.
 
-        Any existing collapsed history is preserved so the full review trail
-        is kept inside nested ``<details>`` blocks.
+        Footers are stripped from old content to avoid duplication.
+        If the result exceeds the GitHub character limit the oldest
+        history entries are dropped.
         """
         history_tag = "\n<details>\n<summary><b>Previous analyses</b></summary>\n"
 
-        if history_tag in old_body:
-            current_section, existing_history = old_body.split(history_tag, 1)
-            # Strip trailing </details> so we can re-wrap
+        # Strip footer from old content before collapsing
+        old_content = cls._strip_footer(old_body)
+
+        if history_tag in old_content:
+            current_section, existing_history = old_content.split(history_tag, 1)
             existing_history = existing_history.rstrip()
             if existing_history.endswith("</details>"):
                 existing_history = existing_history[: -len("</details>")].rstrip()
@@ -230,9 +246,16 @@ class GitHubAnalyzer:
                 f"{history_tag}\n{current_section.strip()}\n\n{existing_history}\n\n</details>\n"
             )
         else:
-            collapsed = f"{history_tag}\n{old_body.strip()}\n\n</details>\n"
+            collapsed = f"{history_tag}\n{old_content.strip()}\n\n</details>\n"
 
-        return f"{new_body}\n{collapsed}"
+        result = f"{new_body}\n{collapsed}"
+
+        # Truncate history if the comment exceeds the character limit
+        if len(result) > cls.MAX_COMMENT_LENGTH:
+            result = new_body
+            logger.warning("Comment history truncated to stay within character limit")
+
+        return result
 
     def close(self):
         """Close the GitHub API connection."""

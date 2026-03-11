@@ -284,3 +284,28 @@ class TestBuildUpdatedBody:
         assert "second" in third
         assert "first" in third
         assert third.count("<summary><b>Previous analyses</b></summary>") == 1
+
+    def test_strips_footer_from_collapsed_history(self):
+        """Footer is removed from old content before collapsing."""
+        old = "## Bot\n\nold analysis\n\n---\n*Generated with bot*"
+        new = "## Bot\n\nnew analysis\n\n---\n*Generated with bot*"
+
+        result = GitHubAnalyzer._build_updated_body(old, new)
+
+        # The collapsed history should not contain the footer
+        history_start = result.index("<summary>")
+        history_section = result[history_start:]
+        assert "*Generated with bot*" not in history_section
+        # But the new body's footer is preserved at the top level
+        assert result.startswith("## Bot\n\nnew analysis")
+
+    def test_truncates_when_exceeding_max_length(self):
+        """History is dropped when result exceeds character limit."""
+        old = "## Bot\n\n" + "x" * 40_000
+        new = "## Bot\n\n" + "y" * 40_000
+
+        result = GitHubAnalyzer._build_updated_body(old, new)
+
+        # Combined would exceed 65,000 so history should be dropped
+        assert result == new
+        assert "Previous analyses" not in result
