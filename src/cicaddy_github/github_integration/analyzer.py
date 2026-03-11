@@ -173,16 +173,96 @@ class GitHubAnalyzer:
             "number": pr.number,
         }
 
-    async def post_pr_comment(self, pr_number: int, body: str) -> None:
-        """Post a comment on a pull request.
+    async def post_pr_comment(
+        self, pr_number: int, body: str, comment_marker: str | None = None
+    ) -> None:
+        """Post or update a comment on a pull request.
+
+        When *comment_marker* is provided the method looks for an existing
+        comment whose body starts with that marker.  If found, the previous
+        analysis is collapsed into a ``<details>`` block and the comment is
+        updated in-place (similar to CodeRabbit / Qodo persistent review).
+        Otherwise a new comment is created.
 
         Args:
             pr_number: Pull request number.
             body: Comment body text.
+            comment_marker: Optional marker that identifies the bot comment
+                (e.g. ``"## AI Code Review"``).
         """
         pr = self.repo.get_pull(pr_number)
+
+        if comment_marker:
+            existing = self._find_bot_comment(pr, comment_marker)
+            if existing:
+                updated = self._build_updated_body(existing.body, body)
+                existing.edit(updated)
+                logger.info(f"Updated existing comment (id={existing.id}) on PR #{pr_number}")
+                return
+
         pr.create_issue_comment(body)
         logger.info(f"Posted comment on PR #{pr_number}")
+
+    @staticmethod
+    def _find_bot_comment(pr, marker: str):
+        """Return the first issue comment whose body starts with *marker*."""
+        for comment in pr.get_issue_comments():
+            if comment.body and comment.body.startswith(marker):
+                return comment
+        return None
+
+    # GitHub limits issue comments to 65,536 characters.
+    MAX_COMMENT_LENGTH = 65_000
+
+    FOOTER_MARKER = "<!-- cicaddy-footer -->"
+
+    @classmethod
+    def _strip_footer(cls, body: str) -> str:
+        """Remove the trailing footer from a comment body.
+
+        Looks for the unique ``<!-- cicaddy-footer -->`` marker to avoid
+        accidentally stripping markdown horizontal rules in AI output.
+        """
+        idx = body.rfind(cls.FOOTER_MARKER)
+        if idx != -1:
+            return body[:idx].rstrip()
+        return body.rstrip()
+
+    @classmethod
+    def _build_updated_body(cls, old_body: str, new_body: str) -> str:
+        """Prepend *new_body* and collapse the previous analysis.
+
+        Footers are stripped from old content to avoid duplication.
+        If the result exceeds the GitHub character limit the oldest
+        history entries are dropped.
+        """
+        history_tag = "\n<details>\n<summary><b>Previous analyses</b></summary>\n"
+
+        # Strip footer from old content before collapsing
+        old_content = cls._strip_footer(old_body)
+
+        if history_tag in old_content:
+            current_section, existing_history = old_content.split(history_tag, 1)
+            existing_history = existing_history.rstrip()
+            if existing_history.endswith("</details>"):
+                existing_history = existing_history[: -len("</details>")].rstrip()
+            collapsed = (
+                f"{history_tag}\n{current_section.strip()}\n\n{existing_history}\n\n</details>\n"
+            )
+        else:
+            collapsed = f"{history_tag}\n{old_content.strip()}\n\n</details>\n"
+
+        result = f"{new_body}\n{collapsed}"
+
+        # Truncate history if the comment exceeds the character limit
+        if len(result) > cls.MAX_COMMENT_LENGTH:
+            truncation_note = (
+                "\n\n*[Older history truncated to stay within GitHub character limit]*"
+            )
+            result = f"{new_body}{truncation_note}"
+            logger.warning("Comment history truncated to stay within character limit")
+
+        return result
 
     def close(self):
         """Close the GitHub API connection."""
