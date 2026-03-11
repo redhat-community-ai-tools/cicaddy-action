@@ -20,7 +20,7 @@ BOT_COMMENT_MARKER_PR_REVIEW = "<!-- cicaddy-action:pr-review -->"
 
 # Pattern matches fenced code blocks (possibly indented by list nesting).
 _FENCED_CODE_BLOCK = re.compile(
-    r"^([ \t]*`{3,}[^\n]*)\n(.*?)\n([ \t]*`{3,})$",
+    r"^([ \t]*(?:`{3,}|~{3,})[^\n]*)\n(.*?)\n([ \t]*(?:`{3,}|~{3,}))[ \t]*$",
     re.MULTILINE | re.DOTALL,
 )
 

@@ -21,12 +21,7 @@ class TestDedentCodeBlocks:
 
     def test_preserves_relative_indentation(self):
         """Relative indentation within the code block is preserved."""
-        text = (
-            "    ```python\n"
-            "        def foo():\n"
-            "            return 42\n"
-            "    ```"
-        )
+        text = "    ```python\n        def foo():\n            return 42\n    ```"
         result = dedent_code_blocks(text)
         assert "```python\ndef foo():\n    return 42\n```" in result
 
@@ -53,6 +48,18 @@ class TestDedentCodeBlocks:
         assert "```python\nprint('a')\n```" in result
         assert "```bash\necho hello\n```" in result
 
+    def test_tilde_delimiters(self):
+        """Tilde-fenced code blocks are also dedented."""
+        text = "    ~~~python\n        print('hello')\n    ~~~"
+        result = dedent_code_blocks(text)
+        assert "~~~python\nprint('hello')\n~~~" in result
+
+    def test_trailing_whitespace_on_closer(self):
+        """Trailing whitespace after closing fence is tolerated."""
+        text = "    ```python\n        x = 1\n    ```   "
+        result = dedent_code_blocks(text)
+        assert "```python\nx = 1\n```" in result
+
     def test_text_without_code_blocks(self):
         """Plain text without code blocks is unchanged."""
         text = "This is plain markdown with **bold** and *italic*."
@@ -60,13 +67,7 @@ class TestDedentCodeBlocks:
 
     def test_mixed_content_preserves_surrounding_text(self):
         """List structure around code blocks is preserved."""
-        text = (
-            "* Item one\n"
-            "    ```diff\n"
-            "        +added line\n"
-            "    ```\n"
-            "* Item two"
-        )
+        text = "* Item one\n    ```diff\n        +added line\n    ```\n* Item two"
         result = dedent_code_blocks(text)
         assert result.startswith("* Item one\n")
         assert result.endswith("* Item two")
