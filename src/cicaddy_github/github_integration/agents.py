@@ -1,6 +1,8 @@
 """GitHub AI Agents for PR review and task execution."""
 
 import os
+import re
+import textwrap
 from typing import Any
 
 from cicaddy.agent.base import BaseAIAgent
@@ -15,6 +17,30 @@ from cicaddy_github.security.leak_detector import LeakDetector
 logger = get_logger(__name__)
 
 BOT_COMMENT_MARKER_PR_REVIEW = "<!-- cicaddy-action:pr-review -->"
+
+# Pattern matches fenced code blocks (possibly indented by list nesting).
+_FENCED_CODE_BLOCK = re.compile(
+    r"^([ \t]*`{3,}[^\n]*)\n(.*?)\n([ \t]*`{3,})$",
+    re.MULTILINE | re.DOTALL,
+)
+
+
+def dedent_code_blocks(text: str) -> str:
+    """Remove common leading whitespace from fenced code block content.
+
+    AI models often indent code block content to match surrounding list
+    indentation.  GitHub renders that whitespace literally, so we strip
+    the common prefix using ``textwrap.dedent`` while preserving relative
+    indentation within the block.
+    """
+
+    def _dedent(match: re.Match) -> str:
+        opener = match.group(1).lstrip()
+        content = match.group(2)
+        closer = match.group(3).lstrip()
+        return f"{opener}\n{textwrap.dedent(content)}\n{closer}"
+
+    return _FENCED_CODE_BLOCK.sub(_dedent, text)
 
 
 class GitHubTaskAgent(BaseAIAgent):
@@ -254,7 +280,7 @@ Please provide your comprehensive analysis in markdown format.
         comment = f"{BOT_COMMENT_MARKER_PR_REVIEW}\n"
 
         if "ai_analysis" in analysis_result:
-            comment += analysis_result["ai_analysis"] + "\n"
+            comment += dedent_code_blocks(analysis_result["ai_analysis"]) + "\n"
 
         comment += (
             "\n<!-- cicaddy-footer -->\n---\n"
