@@ -69,6 +69,9 @@ constraints:
   - Assess test coverage implications
   - When reviewing code that uses external libraries, use Context7 tools to look up
     current API documentation and best practices
+  - All fenced code blocks (```) must start at column 0 with no leading whitespace,
+    even when inside list items. Content inside code blocks must not have extra
+    indentation from list nesting
 
 reasoning: chain_of_thought
 output_format: markdown
