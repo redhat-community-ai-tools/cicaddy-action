@@ -46,7 +46,7 @@ def dedent_code_blocks(text: str) -> str:
 # Matches output wrapped in a single ```markdown ... ``` fence.
 _MARKDOWN_WRAPPER = re.compile(
     r"^\s*```(?:markdown|md)\s*\n(.*?)\n\s*```\s*$",
-    re.DOTALL,
+    re.DOTALL | re.IGNORECASE,
 )
 
 

@@ -89,6 +89,13 @@ class TestStripMarkdownWrapper:
         result = strip_markdown_wrapper(text)
         assert result == "## Title\nContent."
 
+    def test_strips_case_insensitive(self):
+        """Output wrapped in ```Markdown or ```MD is also unwrapped."""
+        for tag in ("Markdown", "MARKDOWN", "MD", "Md"):
+            text = f"```{tag}\nContent here.\n```"
+            result = strip_markdown_wrapper(text)
+            assert result == "Content here.", f"Failed for tag: {tag}"
+
     def test_no_change_without_wrapper(self):
         """Plain markdown without wrapper is unchanged."""
         text = "### Summary\nSome analysis."
