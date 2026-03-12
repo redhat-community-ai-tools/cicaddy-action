@@ -220,14 +220,13 @@ context: |
 ## Workflow Usage
 
 ```yaml
-- uses: redhat-community-ai-tools/cicaddy-action@v0
+- uses: redhat-community-ai-tools/cicaddy-action@v0.3.0
   with:
     ai_provider: gemini
     ai_model: gemini-3-flash-preview
     ai_api_key: ${{ secrets.AI_API_KEY }}
     task_file: tasks/pr_review.yml
     post_pr_comment: 'true'
-    github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Running Locally

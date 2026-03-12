@@ -12,31 +12,6 @@ GitHub Action that wraps [cicaddy](https://github.com/waynesun09/cicaddy) for ru
 
 ## Quick Start
 
-### Changelog Report on Release
-
-```yaml
-name: Generate Changelog
-
-on:
-  release:
-    types: [published]
-
-jobs:
-  changelog:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: redhat-community-ai-tools/cicaddy-action@v0
-        with:
-          ai_provider: gemini
-          ai_model: gemini-2.5-flash
-          ai_api_key: ${{ secrets.AI_API_KEY }}
-          task_file: tasks/changelog_report.yml
-```
-
 ### AI PR Review
 
 ```yaml
@@ -57,14 +32,38 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: redhat-community-ai-tools/cicaddy-action@v0
+      - uses: redhat-community-ai-tools/cicaddy-action@v0.3.0
         with:
           ai_provider: gemini
           ai_model: gemini-3-flash-preview
           ai_api_key: ${{ secrets.AI_API_KEY }}
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Changelog Report on Release
+
+```yaml
+name: Generate Changelog
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: redhat-community-ai-tools/cicaddy-action@v0.3.0
+        with:
+          ai_provider: gemini
+          ai_model: gemini-3-flash-preview
+          ai_api_key: ${{ secrets.AI_API_KEY }}
+          task_file: tasks/changelog_report.yml
 ```
 
 ## Inputs

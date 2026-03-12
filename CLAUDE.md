@@ -27,5 +27,8 @@ GitHub Action that wraps cicaddy for running AI agent tasks in GitHub Actions wo
 - Test files in `tests/unit/`
 - Fixtures in `tests/conftest.py`
 
+## Release Checklist
+- When bumping the version for a release, also update all `cicaddy-action@vX.Y.Z` version references in `README.md` and `.claude/skills/cicaddy-action/SKILL.md` to match the new version.
+
 ## Reference Repos
 - [cicaddy core](https://github.com/waynesun09/cicaddy)
