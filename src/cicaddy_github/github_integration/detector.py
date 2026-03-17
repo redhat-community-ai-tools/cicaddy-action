@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 def _detect_github_agent_type(settings) -> str | None:
     """Detect GitHub-specific agent types from Actions environment variables."""
     event = os.getenv("GITHUB_EVENT_NAME")
-    if event == "pull_request":
+    if event in ("pull_request", "pull_request_target"):
         logger.info(f"Detected pull request context: GITHUB_EVENT_NAME={event}")
         return "github_pr"
 
