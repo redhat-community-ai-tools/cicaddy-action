@@ -28,6 +28,7 @@ GitHub Action that wraps cicaddy for running AI agent tasks in GitHub Actions wo
 - Fixtures in `tests/conftest.py`
 
 ## Release Checklist
+- **Bump `version` in `pyproject.toml` BEFORE tagging** — the release workflow builds from the checked-out source, so the `pyproject.toml` version must match the git tag. If the version doesn't match, PyPI will reject the upload (either as a duplicate or a mismatch).
 - When bumping the version for a release, also update all `cicaddy-action@vX.Y.Z` version references in `README.md` and `.claude/skills/cicaddy-action/SKILL.md` to match the new version.
 
 ## PR Review Workflow Security

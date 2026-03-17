@@ -225,7 +225,7 @@ the `safe-to-review` label. The label is auto-removed on new pushes to prevent
 TOCTOU bypasses.
 
 ```yaml
-- uses: redhat-community-ai-tools/cicaddy-action@v0.3.0
+- uses: redhat-community-ai-tools/cicaddy-action@v0.3.1
   with:
     ai_provider: gemini
     ai_model: gemini-3-flash-preview
