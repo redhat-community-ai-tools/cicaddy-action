@@ -50,6 +50,13 @@ export POST_PR_COMMENT="${INPUT_POST_PR_COMMENT:-false}"
 # Extract PR number from GITHUB_REF (e.g. refs/pull/123/merge -> 123)
 if [[ "${GITHUB_REF}" =~ ^refs/pull/([0-9]+)/ ]]; then
   export GITHUB_PR_NUMBER="${BASH_REMATCH[1]}"
+elif [[ -n "${GITHUB_EVENT_PATH}" && -f "${GITHUB_EVENT_PATH}" ]]; then
+  # For pull_request_target, GITHUB_REF is the base branch, not refs/pull/N/merge.
+  # Extract PR number from the event payload JSON instead.
+  PR_NUM=$(python3 -c "import json,sys; e=json.load(open(sys.argv[1])); print(e.get('pull_request',{}).get('number',''))" "${GITHUB_EVENT_PATH}" 2>/dev/null || true)
+  if [[ -n "${PR_NUM}" ]]; then
+    export GITHUB_PR_NUMBER="${PR_NUM}"
+  fi
 fi
 
 # Enable local tools (git operations) and set working directory

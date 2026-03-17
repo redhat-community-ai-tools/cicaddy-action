@@ -17,6 +17,16 @@ class TestDetectGitHubAgentType:
             result = _detect_github_agent_type(settings)
         assert result == "github_pr"
 
+    def test_pull_request_target_event_returns_github_pr(self):
+        """GITHUB_EVENT_NAME=pull_request_target returns github_pr."""
+        from cicaddy_github.github_integration.detector import _detect_github_agent_type
+
+        settings = MagicMock()
+        settings.github_pr_number = None
+        with patch.dict(os.environ, {"GITHUB_EVENT_NAME": "pull_request_target"}):
+            result = _detect_github_agent_type(settings)
+        assert result == "github_pr"
+
     def test_push_event_returns_none(self):
         """GITHUB_EVENT_NAME=push returns None (falls through to TaskAgent)."""
         from cicaddy_github.github_integration.detector import _detect_github_agent_type
