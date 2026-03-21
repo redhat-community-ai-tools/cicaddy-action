@@ -36,7 +36,15 @@ _to_abs() {
 }
 
 if [[ -n "${INPUT_TASK_FILE}" ]]; then
-  export AI_TASK_FILE="$(_to_abs "${INPUT_TASK_FILE}")"
+  _ws_path="$(_to_abs "${INPUT_TASK_FILE}")"
+  if [[ -f "${_ws_path}" ]]; then
+    export AI_TASK_FILE="${_ws_path}"
+  elif [[ -f "/app/${INPUT_TASK_FILE}" ]]; then
+    # Fall back to bundled task files shipped with the action
+    export AI_TASK_FILE="/app/${INPUT_TASK_FILE}"
+  else
+    export AI_TASK_FILE="${_ws_path}"
+  fi
 fi
 export AI_TASK_PROMPT="${INPUT_TASK_PROMPT}"
 if [[ -n "${INPUT_REPORT_TEMPLATE}" ]]; then

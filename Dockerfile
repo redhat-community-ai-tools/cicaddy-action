@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && \
 
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
+COPY tasks ./tasks
 COPY entrypoint.sh ./
 
 RUN uv pip install --system --no-cache . && \
