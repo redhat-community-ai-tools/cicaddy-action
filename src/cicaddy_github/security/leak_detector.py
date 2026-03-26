@@ -90,7 +90,7 @@ class LeakDetector:
 
         try:
             if hasattr(secret, "secret_value"):
-                secret_value: str = secret.secret_value  # type: ignore[assignment]
+                secret_value = str(secret.secret_value)
                 start = 0
                 while True:
                     pos = line.find(secret_value, start)
