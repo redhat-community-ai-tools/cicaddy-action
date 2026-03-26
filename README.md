@@ -37,7 +37,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: redhat-community-ai-tools/cicaddy-action@v0.3.2
+      - uses: redhat-community-ai-tools/cicaddy-action@v0.4.0
         with:
           ai_provider: gemini
           ai_model: gemini-3-flash-preview
@@ -63,7 +63,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: redhat-community-ai-tools/cicaddy-action@v0.3.2
+      - uses: redhat-community-ai-tools/cicaddy-action@v0.4.0
         with:
           ai_provider: gemini
           ai_model: gemini-3-flash-preview
