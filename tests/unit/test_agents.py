@@ -1,6 +1,15 @@
-"""Tests for dedent_code_blocks and strip_markdown_wrapper in agents module."""
+"""Tests for dedent_code_blocks, strip_markdown_wrapper, and review decision extraction."""
 
-from cicaddy_github.github_integration.agents import dedent_code_blocks, strip_markdown_wrapper
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from cicaddy_github.config.settings import Settings
+from cicaddy_github.github_integration.agents import (
+    GitHubPRAgent,
+    dedent_code_blocks,
+    strip_markdown_wrapper,
+)
 
 
 class TestDedentCodeBlocks:
@@ -111,3 +120,142 @@ class TestStripMarkdownWrapper:
         """A ```python wrapper is NOT stripped."""
         text = "```python\nprint('hi')\n```"
         assert strip_markdown_wrapper(text) == text
+
+
+class TestExtractReviewDecision:
+    """Test review decision extraction from AI analysis results."""
+
+    def test_extracts_from_structured_outputs(self):
+        """Extracts review_decision from structured outputs (DSPy)."""
+        agent = GitHubPRAgent()
+        analysis_result = {"outputs": {"review_decision": "APPROVE"}}
+
+        decision = agent._extract_review_decision(analysis_result)
+        assert decision == "APPROVE"
+
+    def test_extracts_from_ai_analysis_text_colon_format(self):
+        """Extracts review_decision from AI text using colon format."""
+        agent = GitHubPRAgent()
+        analysis_result = {
+            "ai_analysis": "## Review\n\nreview_decision: REQUEST_CHANGES\n\nSome feedback"
+        }
+
+        decision = agent._extract_review_decision(analysis_result)
+        assert decision == "REQUEST_CHANGES"
+
+    def test_extracts_from_ai_analysis_text_bold_format(self):
+        """Extracts review_decision from AI text using bold markdown format."""
+        agent = GitHubPRAgent()
+        analysis_result = {
+            "ai_analysis": "## Summary\n\n**Review Decision**: COMMENT\n\nDetails here"
+        }
+
+        decision = agent._extract_review_decision(analysis_result)
+        assert decision == "COMMENT"
+
+    def test_extracts_case_insensitive(self):
+        """Extracts review_decision case-insensitively."""
+        agent = GitHubPRAgent()
+        analysis_result = {"ai_analysis": "review_decision: approve"}
+
+        decision = agent._extract_review_decision(analysis_result)
+        assert decision == "APPROVE"
+
+    def test_returns_none_when_not_found(self):
+        """Returns None when no review decision is found."""
+        agent = GitHubPRAgent()
+        analysis_result = {"ai_analysis": "Some analysis without a decision"}
+
+        decision = agent._extract_review_decision(analysis_result)
+        assert decision is None
+
+    def test_returns_none_for_invalid_decision(self):
+        """Returns None when decision value is invalid."""
+        agent = GitHubPRAgent()
+        analysis_result = {"outputs": {"review_decision": "INVALID"}}
+
+        decision = agent._extract_review_decision(analysis_result)
+        assert decision is None
+
+    def test_prefers_structured_output_over_text(self):
+        """Prefers structured outputs over text parsing."""
+        agent = GitHubPRAgent()
+        analysis_result = {
+            "outputs": {"review_decision": "APPROVE"},
+            "ai_analysis": "review_decision: REQUEST_CHANGES",
+        }
+
+        decision = agent._extract_review_decision(analysis_result)
+        assert decision == "APPROVE"
+
+
+class TestReviewSubmission:
+    """Test PR review submission in send_notifications."""
+
+    @pytest.mark.asyncio
+    async def test_submits_review_when_enabled(self):
+        """Submits formal review when submit_pr_review is enabled."""
+        settings = Settings(
+            github_pr_number="42",
+            submit_pr_review=True,
+        )
+        agent = GitHubPRAgent(settings=settings)
+        agent.platform_analyzer = MagicMock()
+        agent.platform_analyzer.create_review = AsyncMock(
+            return_value={"id": 12345, "state": "APPROVED", "html_url": "https://..."}
+        )
+
+        analysis_result = {
+            "outputs": {"review_decision": "APPROVE"},
+            "ai_analysis": "LGTM!",
+        }
+
+        await agent.send_notifications({}, analysis_result)
+
+        agent.platform_analyzer.create_review.assert_called_once()
+        call_args = agent.platform_analyzer.create_review.call_args
+        assert call_args[0][0] == 42  # pr_number
+        assert call_args[1]["event"] == "APPROVE"
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_comment_when_no_decision(self):
+        """Falls back to comment mode when no review decision found."""
+        settings = Settings(
+            github_pr_number="42",
+            submit_pr_review=True,
+            post_pr_comment=True,
+        )
+        agent = GitHubPRAgent(settings=settings)
+        agent.platform_analyzer = MagicMock()
+        agent.platform_analyzer.create_review = AsyncMock()
+        agent.platform_analyzer.post_pr_comment = AsyncMock()
+
+        analysis_result = {"ai_analysis": "Some feedback without decision"}
+
+        await agent.send_notifications({}, analysis_result)
+
+        agent.platform_analyzer.create_review.assert_not_called()
+        agent.platform_analyzer.post_pr_comment.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_uses_comment_mode_when_review_disabled(self):
+        """Uses comment mode when submit_pr_review is disabled."""
+        settings = Settings(
+            github_pr_number="42",
+            submit_pr_review=False,
+            post_pr_comment=True,
+        )
+        agent = GitHubPRAgent(settings=settings)
+        agent.platform_analyzer = MagicMock()
+        agent.platform_analyzer.create_review = AsyncMock()
+        agent.platform_analyzer.post_pr_comment = AsyncMock()
+
+        analysis_result = {
+            "outputs": {"review_decision": "APPROVE"},
+            "ai_analysis": "LGTM!",
+        }
+
+        await agent.send_notifications({}, analysis_result)
+
+        agent.platform_analyzer.create_review.assert_not_called()
+        agent.platform_analyzer.post_pr_comment.assert_called_once()

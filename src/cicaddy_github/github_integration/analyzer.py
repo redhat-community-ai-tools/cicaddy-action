@@ -276,6 +276,44 @@ class GitHubAnalyzer:
 
         return result
 
+    async def create_review(
+        self,
+        pr_number: int,
+        body: str,
+        event: str = "COMMENT",
+    ) -> dict:
+        """Create a formal pull request review.
+
+        Args:
+            pr_number: Pull request number.
+            body: Review comment body.
+            event: Review event type - must be one of:
+                   "APPROVE", "REQUEST_CHANGES", or "COMMENT".
+
+        Returns:
+            Dict with review id, state, and html_url.
+
+        Raises:
+            ValueError: If event is not a valid review event type.
+        """
+        valid_events = {"APPROVE", "REQUEST_CHANGES", "COMMENT"}
+        if event not in valid_events:
+            raise ValueError(
+                f"Invalid review event '{event}'. Must be one of: {', '.join(valid_events)}"
+            )
+
+        pr = self.repo.get_pull(pr_number)
+        review = pr.create_review(body=body, event=event)
+
+        logger.info(f"Created {event} review on PR #{pr_number} (review_id={review.id})")
+
+        return {
+            "id": review.id,
+            "state": review.state,
+            "html_url": review.html_url,
+            "submitted_at": review.submitted_at.isoformat() if review.submitted_at else None,
+        }
+
     def close(self):
         """Close the GitHub API connection."""
         self.github.close()

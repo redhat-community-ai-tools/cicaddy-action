@@ -34,6 +34,10 @@ inputs:
     description: 'Post analysis results as PR comment (requires github-token with pull-requests: write)'
     required: false
     default: 'false'
+  submit_pr_review:
+    description: 'Submit formal PR review with APPROVE/REQUEST_CHANGES/COMMENT based on AI analysis (requires github-token with pull-requests: write)'
+    required: false
+    default: 'false'
   github_token:
     description: 'GitHub token for API access'
     required: false

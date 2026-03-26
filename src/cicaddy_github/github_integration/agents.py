@@ -265,30 +265,88 @@ Please provide your comprehensive analysis in markdown format.
         return pr_context
 
     async def send_notifications(self, report: dict[str, Any], analysis_result: dict[str, Any]):
-        """Send notifications via PR comment and Slack."""
+        """Send notifications via PR review/comment and Slack."""
         # Sanitize outputs
         if "ai_analysis" in analysis_result:
             analysis_result["ai_analysis"] = self.leak_detector.sanitize_text(
                 analysis_result["ai_analysis"]
             )
 
-        # Post PR comment if enabled (updates existing bot comment in-place)
-        post_comment = getattr(self.settings, "post_pr_comment", False)
-        if post_comment and self.platform_analyzer and self.pr_number:
+        # Check if we should submit a formal review
+        review_decision = self._extract_review_decision(analysis_result)
+        submit_review = getattr(self.settings, "submit_pr_review", False)
+
+        if submit_review and review_decision and self.platform_analyzer and self.pr_number:
+            # Submit formal review with APPROVE, REQUEST_CHANGES, or COMMENT
             try:
                 comment = self._format_pr_comment(analysis_result)
-                await self.platform_analyzer.post_pr_comment(
-                    int(self.pr_number), comment, comment_marker=BOT_COMMENT_MARKER_PR_REVIEW
+                review_info = await self.platform_analyzer.create_review(
+                    int(self.pr_number), comment, event=review_decision
                 )
-                logger.info(f"Posted analysis to PR #{self.pr_number}")
+                logger.info(
+                    f"Submitted {review_decision} review to PR #{self.pr_number} "
+                    f"(review_id={review_info['id']})"
+                )
             except Exception as e:
                 logger.error(
-                    f"Failed to post PR comment: {self.leak_detector.sanitize_text(str(e))}"
+                    f"Failed to submit PR review: {self.leak_detector.sanitize_text(str(e))}"
                 )
-                logger.debug("PR comment post traceback:", exc_info=True)
+                logger.debug("PR review submission traceback:", exc_info=True)
+        else:
+            # Fallback to comment mode (updates existing bot comment in-place)
+            post_comment = getattr(self.settings, "post_pr_comment", False)
+            if post_comment and self.platform_analyzer and self.pr_number:
+                try:
+                    comment = self._format_pr_comment(analysis_result)
+                    await self.platform_analyzer.post_pr_comment(
+                        int(self.pr_number), comment, comment_marker=BOT_COMMENT_MARKER_PR_REVIEW
+                    )
+                    logger.info(f"Posted analysis to PR #{self.pr_number}")
+                except Exception as e:
+                    logger.error(
+                        f"Failed to post PR comment: {self.leak_detector.sanitize_text(str(e))}"
+                    )
+                    logger.debug("PR comment post traceback:", exc_info=True)
 
         # Send Slack notification using parent class
         await super().send_notifications(report, analysis_result)
+
+    def _extract_review_decision(self, analysis_result: dict[str, Any]) -> str | None:
+        """Extract review decision from AI analysis result.
+
+        Looks for 'review_decision' in the parsed outputs or attempts to
+        parse it from the raw AI analysis text.
+
+        Returns:
+            One of "APPROVE", "REQUEST_CHANGES", "COMMENT", or None if not found.
+        """
+        # Try to get from parsed outputs first (DSPy structured output)
+        outputs = analysis_result.get("outputs", {})
+        if isinstance(outputs, dict) and "review_decision" in outputs:
+            decision = outputs["review_decision"]
+            if decision in {"APPROVE", "REQUEST_CHANGES", "COMMENT"}:
+                return decision
+
+        # Fallback: try to parse from AI analysis text
+        ai_text = analysis_result.get("ai_analysis", "")
+        if not ai_text:
+            return None
+
+        # Look for patterns like "review_decision: APPROVE" or "**Review Decision**: REQUEST_CHANGES"
+        import re
+
+        patterns = [
+            r"review_decision\s*[:=]\s*(APPROVE|REQUEST_CHANGES|COMMENT)",
+            r"\*\*review[_ ]decision\*\*\s*[:=]\s*(APPROVE|REQUEST_CHANGES|COMMENT)",
+            r"decision\s*[:=]\s*(APPROVE|REQUEST_CHANGES|COMMENT)",
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, ai_text, re.IGNORECASE)
+            if match:
+                return match.group(1).upper()
+
+        return None
 
     def _format_pr_comment(self, analysis_result: dict[str, Any]) -> str:
         """Format analysis results as a PR comment.

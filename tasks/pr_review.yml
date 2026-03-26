@@ -50,6 +50,11 @@ outputs:
     description: "Code quality, readability, and maintainability assessment"
     required: false
     format: paragraph
+  - name: review_decision
+    description: "Review decision: APPROVE, REQUEST_CHANGES, or COMMENT"
+    required: true
+    format: value
+    allowed_values: ["APPROVE", "REQUEST_CHANGES", "COMMENT"]
 
 tools:
   servers: []
@@ -72,6 +77,10 @@ constraints:
   - All fenced code blocks (```) must start at column 0 with no leading whitespace,
     even when inside list items. Content inside code blocks must not have extra
     indentation from list nesting
+  - Set review_decision based on findings:
+    * APPROVE - No significant issues found, changes are good to merge
+    * REQUEST_CHANGES - Critical or high severity issues that must be fixed before merge
+    * COMMENT - Provide feedback without blocking merge (suggestions, minor issues)
 
 reasoning: chain_of_thought
 output_format: markdown

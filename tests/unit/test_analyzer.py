@@ -319,3 +319,72 @@ class TestBuildUpdatedBody:
         assert result.startswith("## Bot\n\n" + "y" * 100)
         assert "Previous analyses" not in result
         assert "[Older history truncated" in result
+
+
+class TestCreateReview:
+    """Test PR review creation."""
+
+    @pytest.mark.asyncio
+    async def test_creates_approve_review(self, analyzer, mock_github):
+        """APPROVE review is created successfully."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+        mock_review = MagicMock()
+        mock_review.id = 12345
+        mock_review.state = "APPROVED"
+        mock_review.html_url = "https://github.com/owner/repo/pull/42#pullrequestreview-12345"
+        mock_review.submitted_at = None
+        mock_pr.create_review.return_value = mock_review
+        mock_repo.get_pull.return_value = mock_pr
+
+        result = await analyzer.create_review(42, "LGTM!", event="APPROVE")
+
+        assert result["id"] == 12345
+        assert result["state"] == "APPROVED"
+        mock_pr.create_review.assert_called_once_with(body="LGTM!", event="APPROVE")
+
+    @pytest.mark.asyncio
+    async def test_creates_request_changes_review(self, analyzer, mock_github):
+        """REQUEST_CHANGES review is created successfully."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+        mock_review = MagicMock()
+        mock_review.id = 67890
+        mock_review.state = "CHANGES_REQUESTED"
+        mock_review.html_url = "https://github.com/owner/repo/pull/42#pullrequestreview-67890"
+        mock_review.submitted_at = None
+        mock_pr.create_review.return_value = mock_review
+        mock_repo.get_pull.return_value = mock_pr
+
+        result = await analyzer.create_review(42, "Please fix issues", event="REQUEST_CHANGES")
+
+        assert result["id"] == 67890
+        assert result["state"] == "CHANGES_REQUESTED"
+        mock_pr.create_review.assert_called_once_with(
+            body="Please fix issues", event="REQUEST_CHANGES"
+        )
+
+    @pytest.mark.asyncio
+    async def test_creates_comment_review(self, analyzer, mock_github):
+        """COMMENT review is created successfully."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+        mock_review = MagicMock()
+        mock_review.id = 11111
+        mock_review.state = "COMMENTED"
+        mock_review.html_url = "https://github.com/owner/repo/pull/42#pullrequestreview-11111"
+        mock_review.submitted_at = None
+        mock_pr.create_review.return_value = mock_review
+        mock_repo.get_pull.return_value = mock_pr
+
+        result = await analyzer.create_review(42, "Some feedback", event="COMMENT")
+
+        assert result["id"] == 11111
+        assert result["state"] == "COMMENTED"
+        mock_pr.create_review.assert_called_once_with(body="Some feedback", event="COMMENT")
+
+    @pytest.mark.asyncio
+    async def test_invalid_review_event_raises_error(self, analyzer, mock_github):
+        """Invalid review event raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid review event 'INVALID'"):
+            await analyzer.create_review(42, "body", event="INVALID")

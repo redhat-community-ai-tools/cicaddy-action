@@ -18,7 +18,7 @@ class Settings(CoreSettings):
     tokens, repository info, event names, and other CI variables.
     """
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", populate_by_name=True)
 
     # GitHub configuration (uses built-in Actions variables)
     github_token: str = Field(
@@ -61,6 +61,11 @@ class Settings(CoreSettings):
         validation_alias=AliasChoices("POST_PR_COMMENT"),
         description="Whether to post analysis results as PR comment",
     )
+    submit_pr_review: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("SUBMIT_PR_REVIEW"),
+        description="Whether to submit formal PR review (APPROVE/REQUEST_CHANGES/COMMENT)",
+    )
 
 
 def load_settings() -> Settings:
@@ -94,6 +99,11 @@ def load_settings() -> Settings:
     post_pr = os.getenv("POST_PR_COMMENT", "").strip()
     if post_pr:
         env_data["post_pr_comment"] = post_pr.lower() in ("true", "1", "yes")
+
+    # Submit PR review flag
+    submit_review = os.getenv("SUBMIT_PR_REVIEW", "").strip()
+    if submit_review:
+        env_data["submit_pr_review"] = submit_review.lower() in ("true", "1", "yes")
 
     # AI provider configuration
     if os.getenv("AI_PROVIDER"):

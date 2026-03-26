@@ -4,7 +4,8 @@ GitHub Action that wraps [cicaddy](https://github.com/waynesun09/cicaddy) for ru
 
 ## Features
 
-- **AI-powered PR reviews** with optional Context7 MCP for up-to-date library documentation
+- **AI-powered PR reviews** with formal review support (`APPROVE`, `REQUEST_CHANGES`, `COMMENT`)
+- **Context7 MCP integration** for up-to-date library documentation
 - **Changelog report generation** from git tag diffs and release notes
 - **Multiple AI providers**: Gemini, OpenAI, Claude
 - **Secret redaction** via detect-secrets for safe public outputs
@@ -18,6 +19,10 @@ This example uses the `pull_request` trigger, which works for in-repo PRs
 (branches pushed to the same repository). For fork PR support, see
 `.github/workflows/pr-review.yml` which uses `pull_request_target` with
 a `safe-to-review` label gate.
+
+#### Comment Mode (default)
+
+Posts review results as an updateable PR comment:
 
 ```yaml
 name: PR Review
@@ -45,6 +50,25 @@ jobs:
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
 ```
+
+#### Formal Review Mode
+
+Submit formal GitHub PR reviews with `APPROVE`, `REQUEST_CHANGES`, or `COMMENT` status based on AI analysis:
+
+```yaml
+      - uses: redhat-community-ai-tools/cicaddy-action@v0.3.2
+        with:
+          ai_provider: gemini
+          ai_model: gemini-3-flash-preview
+          ai_api_key: ${{ secrets.AI_API_KEY }}
+          task_file: tasks/pr_review.yml
+          submit_pr_review: 'true'
+```
+
+The `tasks/pr_review.yml` task file includes a `review_decision` output that the AI populates based on severity of findings:
+- `APPROVE` - No significant issues, changes are good to merge
+- `REQUEST_CHANGES` - Critical/high severity issues that must be fixed
+- `COMMENT` - Feedback without blocking merge (suggestions, minor issues)
 
 ### Changelog Report on Release
 
@@ -83,7 +107,8 @@ jobs:
 | `report_template` | No | Path to custom HTML report template |
 | `mcp_servers_config` | No | JSON array of MCP server configs |
 | `slack_webhook_url` | No | Slack webhook URL for notifications |
-| `post_pr_comment` | No | Post results as PR comment (default: `false`) |
+| `post_pr_comment` | No | Post results as updateable PR comment (default: `false`) |
+| `submit_pr_review` | No | Submit formal PR review: `APPROVE`, `REQUEST_CHANGES`, or `COMMENT` (default: `false`) |
 | `github_token` | No | GitHub token (default: `${{ github.token }}`) |
 
 ## Outputs
@@ -126,7 +151,9 @@ GITHUB_EVENT_NAME=pull_request
 GITHUB_PR_NUMBER=42
 
 # Agent Settings
+# Use POST_PR_COMMENT for updateable comments, or SUBMIT_PR_REVIEW for formal reviews
 POST_PR_COMMENT=true
+# SUBMIT_PR_REVIEW=true  # Alternative: formal review with APPROVE/REQUEST_CHANGES/COMMENT
 ENABLE_LOCAL_TOOLS=true
 LOCAL_TOOLS_WORKING_DIR=.
 
@@ -178,7 +205,8 @@ uv run cicaddy validate --env-file .env.my-review
 | `GITHUB_REPOSITORY` | Yes | Target repo in `owner/repo` format |
 | `GITHUB_EVENT_NAME` | No | Set to `pull_request` for auto-detection (optional if `GITHUB_PR_NUMBER` is set) |
 | `GITHUB_PR_NUMBER` | Yes | PR number to review |
-| `POST_PR_COMMENT` | No | Post results as PR comment (`true`/`false`) |
+| `POST_PR_COMMENT` | No | Post results as updateable PR comment (`true`/`false`) |
+| `SUBMIT_PR_REVIEW` | No | Submit formal PR review with `APPROVE`/`REQUEST_CHANGES`/`COMMENT` (`true`/`false`) |
 | `AI_TASK_FILE` | No | Path to DSPy YAML task file for custom workflows |
 | `GIT_DIFF_CONTEXT_LINES` | No | Number of context lines in diffs (default: `10`) |
 | `ENABLE_LOCAL_TOOLS` | No | Enable local git tools (`true`/`false`) |
