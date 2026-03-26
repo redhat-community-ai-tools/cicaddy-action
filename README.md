@@ -84,6 +84,7 @@ jobs:
 | `mcp_servers_config` | No | JSON array of MCP server configs |
 | `slack_webhook_url` | No | Slack webhook URL for notifications |
 | `post_pr_comment` | No | Post results as PR comment (default: `false`) |
+| `submit_review` | No | Submit formal PR review with APPROVE/REQUEST_CHANGES (default: `false`) |
 | `github_token` | No | GitHub token (default: `${{ github.token }}`) |
 
 ## Outputs

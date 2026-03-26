@@ -174,3 +174,31 @@ class TestSettingsValidation:
 
             settings = load_settings()
             assert settings.post_pr_comment is True
+
+    def test_submit_review_default_false(self):
+        """SUBMIT_REVIEW defaults to False."""
+        env = {
+            "AI_PROVIDER": "gemini",
+            "AI_MODEL": "gemini-2.5-flash",
+            "MCP_SERVERS_CONFIG": "[]",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("SUBMIT_REVIEW", None)
+            from cicaddy_github.config.settings import load_settings
+
+            settings = load_settings()
+            assert settings.submit_review is False
+
+    def test_submit_review_true(self):
+        """SUBMIT_REVIEW=true sets field to True."""
+        env = {
+            "SUBMIT_REVIEW": "true",
+            "AI_PROVIDER": "gemini",
+            "AI_MODEL": "gemini-2.5-flash",
+            "MCP_SERVERS_CONFIG": "[]",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            from cicaddy_github.config.settings import load_settings
+
+            settings = load_settings()
+            assert settings.submit_review is True

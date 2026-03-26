@@ -261,6 +261,49 @@ class TestPostPRComment:
         mock_pr.create_issue_comment.assert_called_once()
 
 
+class TestSubmitPRReview:
+    """Test formal PR review submission."""
+
+    @pytest.mark.asyncio
+    async def test_submits_approve_review(self, analyzer, mock_github):
+        """Submits an APPROVE review via PyGithub."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.submit_pr_review(42, "LGTM!", event="APPROVE")
+
+        mock_pr.create_review.assert_called_once_with(body="LGTM!", event="APPROVE")
+
+    @pytest.mark.asyncio
+    async def test_submits_request_changes_review(self, analyzer, mock_github):
+        """Submits a REQUEST_CHANGES review."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.submit_pr_review(42, "Please fix.", event="REQUEST_CHANGES")
+
+        mock_pr.create_review.assert_called_once_with(body="Please fix.", event="REQUEST_CHANGES")
+
+    @pytest.mark.asyncio
+    async def test_submits_comment_review_by_default(self, analyzer, mock_github):
+        """Default event is COMMENT."""
+        _, mock_repo = mock_github
+        mock_pr = MagicMock()
+        mock_repo.get_pull.return_value = mock_pr
+
+        await analyzer.submit_pr_review(42, "Some feedback.")
+
+        mock_pr.create_review.assert_called_once_with(body="Some feedback.", event="COMMENT")
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_event(self, analyzer):
+        """Invalid review event raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid review event"):
+            await analyzer.submit_pr_review(42, "body", event="INVALID")
+
+
 class TestBuildUpdatedBody:
     """Test the history collapsing logic."""
 

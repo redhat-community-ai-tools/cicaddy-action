@@ -18,6 +18,14 @@ logger = get_logger(__name__)
 
 BOT_COMMENT_MARKER_PR_REVIEW = "<!-- cicaddy-action:pr-review -->"
 
+# Pattern to detect a review verdict in the AI analysis output.
+# The AI is instructed to include a line like "VERDICT: APPROVE" or
+# "VERDICT: REQUEST_CHANGES" in its output.
+_VERDICT_PATTERN = re.compile(
+    r"(?:^|\n)\s*(?:<!--\s*)?VERDICT:\s*(APPROVE|REQUEST_CHANGES)(?:\s*-->)?",
+    re.IGNORECASE,
+)
+
 # Pattern matches fenced code blocks (possibly indented by list nesting).
 _FENCED_CODE_BLOCK = re.compile(
     r"^([ \t]*(?:`{3,}|~{3,})[^\n]*)\n(.*?)\n([ \t]*(?:`{3,}|~{3,}))[ \t]*$",
@@ -48,6 +56,19 @@ _MARKDOWN_WRAPPER = re.compile(
     r"^\s*```(?:markdown|md)\s*\n(.*?)\n\s*```\s*$",
     re.DOTALL | re.IGNORECASE,
 )
+
+
+def extract_review_verdict(ai_text: str) -> str:
+    """Extract the review verdict from AI analysis output.
+
+    Looks for a ``VERDICT: APPROVE`` or ``VERDICT: REQUEST_CHANGES`` line
+    (optionally wrapped in an HTML comment).  Defaults to ``COMMENT`` when
+    no explicit verdict is found.
+    """
+    m = _VERDICT_PATTERN.search(ai_text)
+    if m:
+        return m.group(1).upper()
+    return "COMMENT"
 
 
 def strip_markdown_wrapper(text: str) -> str:
@@ -223,10 +244,15 @@ class GitHubPRAgent(BaseAIAgent):
             pr_context = self._prepare_dspy_context(context)
             dspy_prompt = self.build_dspy_prompt(task_file, pr_context)
             if dspy_prompt:
+                if getattr(self.settings, "submit_review", False):
+                    dspy_prompt += self._verdict_instruction()
                 return dspy_prompt
 
         pr_data = context["pull_request"]
         diff_content = context["diff"]
+
+        submit_review = getattr(self.settings, "submit_review", False)
+        verdict_block = self._verdict_instruction() if submit_review else ""
 
         return f"""You are an AI agent performing pull request code review.
 
@@ -249,7 +275,21 @@ Instructions:
 4. Provide actionable, specific feedback
 
 Please provide your comprehensive analysis in markdown format.
-"""
+{verdict_block}"""
+
+    @staticmethod
+    def _verdict_instruction() -> str:
+        """Return the prompt snippet that asks the AI to emit a verdict."""
+        return (
+            "\n\nIMPORTANT: At the very end of your analysis, you MUST include a verdict line "
+            "in an HTML comment with the format:\n"
+            "<!-- VERDICT: APPROVE -->\n"
+            "or\n"
+            "<!-- VERDICT: REQUEST_CHANGES -->\n\n"
+            "Use REQUEST_CHANGES when there are bugs, security issues, or significant problems "
+            "that must be fixed before merging. Use APPROVE when the changes look good overall "
+            "(minor suggestions are OK with APPROVE)."
+        )
 
     def _prepare_dspy_context(self, context: dict[str, Any]) -> dict[str, Any]:
         """Prepare context with PR-specific data for DSPy prompt building."""
@@ -265,7 +305,7 @@ Please provide your comprehensive analysis in markdown format.
         return pr_context
 
     async def send_notifications(self, report: dict[str, Any], analysis_result: dict[str, Any]):
-        """Send notifications via PR comment and Slack."""
+        """Send notifications via PR comment, formal review, and Slack."""
         # Sanitize outputs
         if "ai_analysis" in analysis_result:
             analysis_result["ai_analysis"] = self.leak_detector.sanitize_text(
@@ -287,8 +327,46 @@ Please provide your comprehensive analysis in markdown format.
                 )
                 logger.debug("PR comment post traceback:", exc_info=True)
 
+        # Submit formal PR review if enabled
+        submit_review = getattr(self.settings, "submit_review", False)
+        if submit_review and self.platform_analyzer and self.pr_number:
+            try:
+                ai_text = analysis_result.get("ai_analysis", "")
+                verdict = extract_review_verdict(ai_text)
+                review_body = self._format_review_body(analysis_result)
+                await self.platform_analyzer.submit_pr_review(
+                    int(self.pr_number), review_body, event=verdict
+                )
+                logger.info(f"Submitted {verdict} review on PR #{self.pr_number}")
+            except Exception as e:
+                logger.error(
+                    f"Failed to submit PR review: {self.leak_detector.sanitize_text(str(e))}"
+                )
+                logger.debug("PR review submit traceback:", exc_info=True)
+
         # Send Slack notification using parent class
         await super().send_notifications(report, analysis_result)
+
+    def _format_review_body(self, analysis_result: dict[str, Any]) -> str:
+        """Format analysis results as a PR review body.
+
+        Strips the VERDICT line from the output so it does not appear in
+        the rendered review.
+        """
+        body = ""
+        if "ai_analysis" in analysis_result:
+            cleaned = strip_markdown_wrapper(analysis_result["ai_analysis"])
+            cleaned = dedent_code_blocks(cleaned)
+            # Remove the VERDICT line from the review body
+            cleaned = _VERDICT_PATTERN.sub("", cleaned).strip()
+            body = cleaned
+
+        body += (
+            "\n\n---\n"
+            "*Generated with [cicaddy-action]"
+            "(https://github.com/redhat-community-ai-tools/cicaddy-action)*"
+        )
+        return body
 
     def _format_pr_comment(self, analysis_result: dict[str, Any]) -> str:
         """Format analysis results as a PR comment.
