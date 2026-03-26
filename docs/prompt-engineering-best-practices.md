@@ -3,11 +3,11 @@ Author: Wayne Sun <gsun@redhat.com>
 Date:   Mon Mar 16 20:00:28 2026 -0400
 
     docs: add and simplify documentation guides
-    
+
     - Add configuration, cron jobs, development, prompt engineering,
       and env file preparation guides
     - Simplify all docs removing redundant examples and verbose content
-    
+
     Signed-off-by: Wayne Sun <gsun@redhat.com>
 
 diff --git a/docs/prompt-engineering-best-practices.md b/docs/prompt-engineering-best-practices.md

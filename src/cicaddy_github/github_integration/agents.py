@@ -332,7 +332,8 @@ Please provide your comprehensive analysis in markdown format.
         if not ai_text:
             return None
 
-        # Look for patterns like "review_decision: APPROVE" or "**Review Decision**: REQUEST_CHANGES"
+        # Look for patterns like "review_decision: APPROVE"
+        # or "**Review Decision**: REQUEST_CHANGES"
         import re
 
         patterns = [
