@@ -1,6 +1,10 @@
-"""Tests for dedent_code_blocks and strip_markdown_wrapper in agents module."""
+"""Tests for dedent_code_blocks, strip_markdown_wrapper, and extract_review_verdict."""
 
-from cicaddy_github.github_integration.agents import dedent_code_blocks, strip_markdown_wrapper
+from cicaddy_github.github_integration.agents import (
+    dedent_code_blocks,
+    extract_review_verdict,
+    strip_markdown_wrapper,
+)
 
 
 class TestDedentCodeBlocks:
@@ -111,3 +115,37 @@ class TestStripMarkdownWrapper:
         """A ```python wrapper is NOT stripped."""
         text = "```python\nprint('hi')\n```"
         assert strip_markdown_wrapper(text) == text
+
+
+class TestExtractReviewVerdict:
+    """Test extraction of review verdict from AI analysis output."""
+
+    def test_extracts_approve(self):
+        text = "Analysis looks good.\n<!-- VERDICT: APPROVE -->"
+        assert extract_review_verdict(text) == "APPROVE"
+
+    def test_extracts_request_changes(self):
+        text = "Found bugs.\n<!-- VERDICT: REQUEST_CHANGES -->"
+        assert extract_review_verdict(text) == "REQUEST_CHANGES"
+
+    def test_extracts_plain_verdict(self):
+        """Verdict without HTML comment wrapper."""
+        text = "Analysis.\nVERDICT: APPROVE"
+        assert extract_review_verdict(text) == "APPROVE"
+
+    def test_case_insensitive(self):
+        text = "Analysis.\n<!-- verdict: request_changes -->"
+        assert extract_review_verdict(text) == "REQUEST_CHANGES"
+
+    def test_defaults_to_comment(self):
+        """No verdict line returns COMMENT."""
+        text = "Just some analysis text without a verdict."
+        assert extract_review_verdict(text) == "COMMENT"
+
+    def test_verdict_with_leading_whitespace(self):
+        text = "Analysis.\n  <!-- VERDICT: APPROVE -->"
+        assert extract_review_verdict(text) == "APPROVE"
+
+    def test_verdict_in_middle_of_text(self):
+        text = "Start.\n<!-- VERDICT: REQUEST_CHANGES -->\nEnd."
+        assert extract_review_verdict(text) == "REQUEST_CHANGES"
