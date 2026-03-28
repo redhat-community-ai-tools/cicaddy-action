@@ -163,6 +163,28 @@ class TestGetDependencyUsage:
         result = get_dependency_usage(module_name="golang.org/x/net")
         assert "No go.mod" in result
 
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._get_working_dir")
+    @patch("subprocess.run")
+    @patch("os.path.isfile", return_value=True)
+    def test_graph_exact_match_no_false_positives(self, mock_isfile, mock_run, mock_wd):
+        """Module matching should not match substrings (e.g. net vs net-utils)."""
+        mock_wd.return_value = "/workspace"
+        mock_run.side_effect = [
+            MagicMock(stdout="", stderr="", returncode=0),
+            # go mod graph with a similar-but-different module name
+            MagicMock(
+                stdout=(
+                    "my-project golang.org/x/net-utils@v1.0.0\n"
+                    "my-project golang.org/x/network@v2.0.0\n"
+                ),
+                stderr="",
+                returncode=0,
+            ),
+        ]
+        result = get_dependency_usage(module_name="golang.org/x/net")
+        data = json.loads(result)
+        assert data["dependency_graph"] == "Not in graph"
+
 
 class TestGetUpstreamChangelog:
     """Test get_upstream_changelog tool."""
@@ -290,13 +312,14 @@ class TestRunGovulncheck:
     def test_runs_successfully(self, mock_run, mock_which, mock_isfile, mock_wd):
         mock_wd.return_value = "/workspace"
         mock_run.return_value = MagicMock(
-            stdout='{"vulns": []}',
+            stdout="No vulnerabilities found.",
             stderr="",
             returncode=0,
         )
         result = run_govulncheck()
         data = json.loads(result)
         assert data["status"] == "completed"
+        assert "No vulnerabilities" in data["output"]
 
     @patch("cicaddy_github.github_integration.go_dep_review_tools._get_working_dir")
     @patch("os.path.isfile", return_value=True)
@@ -305,7 +328,7 @@ class TestRunGovulncheck:
     def test_handles_vulns_found(self, mock_run, mock_which, mock_isfile, mock_wd):
         mock_wd.return_value = "/workspace"
         mock_run.return_value = MagicMock(
-            stdout='{"vulns": [{"id": "GO-2024-001"}]}',
+            stdout="Vulnerability #1: GO-2024-001\n  Found in: golang.org/x/net@v0.15.0",
             stderr="",
             returncode=3,  # exit code 3 = vulns found
         )
@@ -469,18 +492,13 @@ class TestGitHubGoDepReviewAgent:
 
         settings = MagicMock()
         settings.github_pr_number = "42"
+        settings.github_repository = "owner/repo"
+        settings.github_ref = "refs/pull/42/merge"
+        settings.github_sha = "abc123"
         agent = GitHubGoDepReviewAgent(settings=settings)
         agent.platform_analyzer = None
 
-        with patch.dict(
-            os.environ,
-            {
-                "GITHUB_REPOSITORY": "owner/repo",
-                "GITHUB_REF": "refs/pull/42/merge",
-                "GITHUB_SHA": "abc123",
-            },
-        ):
-            context = await agent.get_analysis_context()
+        context = await agent.get_analysis_context()
 
         assert context["analysis_type"] == "go_dependency_review"
         assert context["pr_number"] == "42"

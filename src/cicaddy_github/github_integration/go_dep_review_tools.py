@@ -197,7 +197,12 @@ def get_dependency_usage(module_name: str) -> str:
             timeout=_GO_TOOLCHAIN_TIMEOUT,
         )
         if proc.returncode == 0:
-            relevant = [line for line in proc.stdout.splitlines() if module_name in line]
+            relevant = []
+            for line in proc.stdout.splitlines():
+                for part in line.split():
+                    if part == module_name or part.startswith(f"{module_name}@"):
+                        relevant.append(line)
+                        break
             results["dependency_graph"] = "\n".join(relevant[:20]) if relevant else "Not in graph"
         else:
             results["dependency_graph"] = proc.stderr.strip()
@@ -421,9 +426,14 @@ def get_security_advisories(ecosystem: str, package_name: str, version: str = ""
 def run_govulncheck() -> str:
     """Run govulncheck for reachability analysis of known vulnerabilities.
 
-    Returns structured vulnerability data showing whether vulnerable
+    Returns human-readable vulnerability data showing whether vulnerable
     functions are actually called in the codebase. Only runs if govulncheck
     is installed.
+
+    Uses text output (not -json) because the human-readable format is more
+    concise, directly highlights call stacks, and is well-suited for LLM
+    context windows. The -json flag produces verbose NDJSON that is easily
+    truncated mid-stream, losing the critical Finding objects at the end.
     """
     working_dir = _get_working_dir()
 
@@ -449,7 +459,7 @@ def run_govulncheck() -> str:
 
     try:
         result = subprocess.run(
-            ["govulncheck", "-json", "./..."],
+            ["govulncheck", "./..."],
             capture_output=True,
             text=True,
             cwd=working_dir,

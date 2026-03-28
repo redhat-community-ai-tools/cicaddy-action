@@ -405,7 +405,7 @@ class GitHubGoDepReviewAgent(BaseAIAgent):
 
     def __init__(self, settings: Settings | None = None):
         super().__init__(settings)
-        self.pr_number = settings.github_pr_number if settings else os.getenv("GITHUB_PR_NUMBER")
+        self.pr_number = getattr(settings, "github_pr_number", None) if settings else None
         self.leak_detector = LeakDetector()
 
     async def _setup_local_tools(self):
@@ -423,8 +423,8 @@ class GitHubGoDepReviewAgent(BaseAIAgent):
 
     async def _setup_platform_integration(self):
         """Setup GitHub analyzer for API access."""
-        token = os.getenv("GITHUB_TOKEN", "")
-        repository = os.getenv("GITHUB_REPOSITORY", "")
+        token = getattr(self.settings, "github_token", "") or ""
+        repository = getattr(self.settings, "github_repository", "") or ""
         working_dir = getattr(self.settings, "local_tools_working_dir", None) or "."
 
         if token and repository:
@@ -440,9 +440,9 @@ class GitHubGoDepReviewAgent(BaseAIAgent):
         """Get dependency review context including PR data."""
         context: dict[str, Any] = {
             "analysis_type": "go_dependency_review",
-            "repository": os.getenv("GITHUB_REPOSITORY", ""),
-            "ref": os.getenv("GITHUB_REF", ""),
-            "sha": os.getenv("GITHUB_SHA", ""),
+            "repository": getattr(self.settings, "github_repository", "") or "",
+            "ref": getattr(self.settings, "github_ref", "") or "",
+            "sha": getattr(self.settings, "github_sha", "") or "",
             "pr_number": self.pr_number,
         }
 
