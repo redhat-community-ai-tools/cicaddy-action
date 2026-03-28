@@ -38,6 +38,14 @@ inputs:
     description: 'Submit a formal PR review with APPROVE or REQUEST_CHANGES based on AI analysis (requires github-token with pull-requests: write)'
     required: false
     default: 'false'
+  run_govulncheck:
+    description: 'Run govulncheck for vulnerability reachability analysis (requires Go and govulncheck installed)'
+    required: false
+    default: 'false'
+  dep_review_severity_threshold:
+    description: 'Minimum semver bump to analyze for dep review: minor or major'
+    required: false
+    default: 'minor'
   github_token:
     description: 'GitHub token for API access'
     required: false

@@ -11,12 +11,14 @@ from cicaddy.utils.logger import get_logger
 
 from cicaddy_github.config.settings import Settings
 from cicaddy_github.github_integration.analyzer import GitHubAnalyzer
+from cicaddy_github.github_integration.go_dep_review_tools import get_all_go_dep_review_tools
 from cicaddy_github.github_integration.tools import get_all_tools
 from cicaddy_github.security.leak_detector import LeakDetector
 
 logger = get_logger(__name__)
 
 BOT_COMMENT_MARKER_PR_REVIEW = "<!-- cicaddy-action:pr-review -->"
+BOT_COMMENT_MARKER_GO_DEP_REVIEW = "<!-- cicaddy-action:go-dep-review -->"
 
 # Pattern to detect a review verdict in the AI analysis output.
 # The AI is instructed to include a line like "VERDICT: APPROVE" or
@@ -391,3 +393,170 @@ Please provide your comprehensive analysis in markdown format.
     def get_session_id(self) -> str:
         """Get unique session ID for this PR analysis."""
         return f"pr_{self.pr_number or 'unknown'}"
+
+
+class GitHubGoDepReviewAgent(BaseAIAgent):
+    """AI Agent for Go dependency impact analysis on pull requests.
+
+    Collects Go dependency context (diffs, usage via go mod, changelogs,
+    advisories, govulncheck) and uses an LLM to produce a structured
+    risk assessment comment.
+    """
+
+    def __init__(self, settings: Settings | None = None):
+        super().__init__(settings)
+        self.pr_number = getattr(settings, "github_pr_number", None) if settings else None
+        self.leak_detector = LeakDetector()
+
+    async def _setup_local_tools(self):
+        """Setup local tools including git and dependency review tools."""
+        await super()._setup_local_tools()
+        if self.local_tool_registry is None:
+            self.local_tool_registry = ToolRegistry(server_name="local")
+        # Register git tools
+        for t in get_all_tools():
+            self.local_tool_registry.register(t)
+        # Register dependency review tools
+        for t in get_all_go_dep_review_tools():
+            self.local_tool_registry.register(t)
+        logger.info(f"Registered tools: {self.local_tool_registry.list_tool_names()}")
+
+    async def _setup_platform_integration(self):
+        """Setup GitHub analyzer for API access."""
+        token = getattr(self.settings, "github_token", "") or ""
+        repository = getattr(self.settings, "github_repository", "") or ""
+        working_dir = getattr(self.settings, "local_tools_working_dir", None) or "."
+
+        if token and repository:
+            try:
+                self.platform_analyzer = GitHubAnalyzer(
+                    token=token, repository=repository, working_dir=working_dir
+                )
+                logger.info(f"GitHub analyzer initialized for {repository}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize GitHub analyzer: {e}")
+
+    async def get_analysis_context(self) -> dict[str, Any]:
+        """Get dependency review context including PR data."""
+        context: dict[str, Any] = {
+            "analysis_type": "go_dependency_review",
+            "repository": getattr(self.settings, "github_repository", "") or "",
+            "ref": getattr(self.settings, "github_ref", "") or "",
+            "sha": getattr(self.settings, "github_sha", "") or "",
+            "pr_number": self.pr_number,
+        }
+
+        # Get PR metadata if available
+        if self.platform_analyzer and self.pr_number:
+            try:
+                pr_data = await self.platform_analyzer.get_pull_request_data(int(self.pr_number))
+                context["pull_request"] = pr_data
+            except Exception as e:
+                logger.warning(f"Failed to get PR data: {e}")
+
+        return context
+
+    def build_analysis_prompt(self, context: dict[str, Any]) -> str:
+        """Build analysis prompt for dependency impact review.
+
+        Supports DSPy YAML task definitions via AI_TASK_FILE.
+        Falls back to inline prompt.
+        """
+        task_file = os.getenv("AI_TASK_FILE")
+        if task_file:
+            dep_context = self._prepare_dep_review_context(context)
+            dspy_prompt = self.build_dspy_prompt(task_file, dep_context)
+            if dspy_prompt:
+                return dspy_prompt
+
+        task_prompt = os.getenv("AI_TASK_PROMPT", "")
+        if task_prompt:
+            return task_prompt
+
+        pr_data = context.get("pull_request", {})
+        return f"""You are an AI agent performing dependency impact analysis on a pull request.
+
+Repository: {context.get("repository", "Unknown")}
+Pull Request: {pr_data.get("title", "Unknown")}
+Description: {pr_data.get("description", "No description")}
+Author: {
+            pr_data.get("author", {}).get("name", "Unknown")
+            if isinstance(pr_data.get("author"), dict)
+            else "Unknown"
+        }
+
+Instructions:
+1. Use get_dependency_diff to get the structured dependency changes between the PR base and head
+2. For each changed dependency:
+   a. Use get_dependency_usage to check if it is directly imported
+   b. Use get_upstream_changelog to fetch release notes between versions
+   c. Use get_security_advisories to check for known vulnerabilities
+3. Optionally use run_govulncheck for reachability analysis
+4. Classify overall risk as LOW, MEDIUM, or HIGH
+5. Provide a structured impact assessment
+
+Format your response as markdown with these sections:
+- Risk Classification (LOW/MEDIUM/HIGH)
+- Changelog Summary
+- Impact Assessment (which APIs/types we use are affected)
+- Impacted Files
+- Recommended Action (auto-merge / quick-review / full-review)
+"""
+
+    def _prepare_dep_review_context(self, context: dict[str, Any]) -> dict[str, Any]:
+        """Prepare context with PR-specific data for DSPy prompt building."""
+        dep_context = context.copy()
+        pr_data = context.get("pull_request", {})
+        dep_context["pr_title"] = pr_data.get("title", "Unknown")
+        dep_context["pr_description"] = pr_data.get("description", "")
+        dep_context["pr_author"] = pr_data.get("author", {}).get("name", "Unknown")
+        dep_context["target_branch"] = pr_data.get("target_branch", "Unknown")
+        dep_context["source_branch"] = pr_data.get("source_branch", "Unknown")
+        dep_context["pr_number"] = self.pr_number
+        return dep_context
+
+    async def send_notifications(self, report: dict[str, Any], analysis_result: dict[str, Any]):
+        """Send notifications via PR comment and Slack (sanitized)."""
+        # Sanitize outputs
+        if "ai_analysis" in analysis_result:
+            analysis_result["ai_analysis"] = self.leak_detector.sanitize_text(
+                analysis_result["ai_analysis"]
+            )
+
+        # Post PR comment if enabled
+        post_comment = getattr(self.settings, "post_pr_comment", False)
+        if post_comment and self.platform_analyzer and self.pr_number:
+            try:
+                comment = self._format_dep_review_comment(analysis_result)
+                await self.platform_analyzer.post_pr_comment(
+                    int(self.pr_number), comment, comment_marker=BOT_COMMENT_MARKER_GO_DEP_REVIEW
+                )
+                logger.info(f"Posted dep review to PR #{self.pr_number}")
+            except Exception as e:
+                logger.error(
+                    f"Failed to post dep review comment: {self.leak_detector.sanitize_text(str(e))}"
+                )
+                logger.debug("Dep review comment post traceback:", exc_info=True)
+
+        # Send Slack notification using parent class
+        await super().send_notifications(report, analysis_result)
+
+    def _format_dep_review_comment(self, analysis_result: dict[str, Any]) -> str:
+        """Format analysis results as a dep review PR comment."""
+        comment = f"{BOT_COMMENT_MARKER_GO_DEP_REVIEW}\n"
+
+        if "ai_analysis" in analysis_result:
+            cleaned = strip_markdown_wrapper(analysis_result["ai_analysis"])
+            comment += dedent_code_blocks(cleaned) + "\n"
+
+        comment += (
+            "\n<!-- cicaddy-footer -->\n---\n"
+            "*Generated with [cicaddy-action]"
+            "(https://github.com/redhat-community-ai-tools/cicaddy-action) "
+            "— Dependency Impact Analysis*"
+        )
+        return comment
+
+    def get_session_id(self) -> str:
+        """Get unique session ID for this dep review."""
+        return f"go_dep_review_{self.pr_number or 'unknown'}"

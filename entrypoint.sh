@@ -55,6 +55,8 @@ export SLACK_WEBHOOK_URL="${INPUT_SLACK_WEBHOOK_URL}"
 export GITHUB_TOKEN="${INPUT_GITHUB_TOKEN:-$GITHUB_TOKEN}"
 export POST_PR_COMMENT="${INPUT_POST_PR_COMMENT:-false}"
 export SUBMIT_REVIEW="${INPUT_SUBMIT_REVIEW:-false}"
+export RUN_GOVULNCHECK="${INPUT_RUN_GOVULNCHECK:-false}"
+export DEP_REVIEW_SEVERITY_THRESHOLD="${INPUT_DEP_REVIEW_SEVERITY_THRESHOLD:-minor}"
 
 # Extract PR number from GITHUB_REF (e.g. refs/pull/123/merge -> 123)
 if [[ "${GITHUB_REF}" =~ ^refs/pull/([0-9]+)/ ]]; then

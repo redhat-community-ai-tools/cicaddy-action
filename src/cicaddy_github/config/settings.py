@@ -66,6 +66,16 @@ class Settings(CoreSettings):
         validation_alias=AliasChoices("SUBMIT_REVIEW"),
         description="Whether to submit a formal PR review (APPROVE or REQUEST_CHANGES)",
     )
+    run_govulncheck: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("RUN_GOVULNCHECK"),
+        description="Whether to run govulncheck for vulnerability reachability analysis",
+    )
+    dep_review_severity_threshold: str = Field(
+        default="minor",
+        validation_alias=AliasChoices("DEP_REVIEW_SEVERITY_THRESHOLD"),
+        description="Minimum semver bump to analyze: 'minor' or 'major'",
+    )
 
 
 def load_settings() -> Settings:
@@ -104,6 +114,15 @@ def load_settings() -> Settings:
     submit_review = os.getenv("SUBMIT_REVIEW", "").strip()
     if submit_review:
         env_data["submit_review"] = submit_review.lower() in ("true", "1", "yes")
+
+    # Dep review configuration
+    run_govulncheck = os.getenv("RUN_GOVULNCHECK", "").strip()
+    if run_govulncheck:
+        env_data["run_govulncheck"] = run_govulncheck.lower() in ("true", "1", "yes")
+
+    dep_threshold = os.getenv("DEP_REVIEW_SEVERITY_THRESHOLD", "").strip()
+    if dep_threshold:
+        env_data["dep_review_severity_threshold"] = dep_threshold
 
     # AI provider configuration
     if os.getenv("AI_PROVIDER"):
