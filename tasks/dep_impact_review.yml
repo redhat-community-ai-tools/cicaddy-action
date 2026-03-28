@@ -1,0 +1,107 @@
+name: dependency_impact_review
+description: "AI-assisted dependency impact analysis for pull requests"
+type: dependency_review
+version: "1.0"
+
+inputs:
+  - name: pr_title
+    description: "Pull request title"
+    required: true
+  - name: pr_description
+    description: "Pull request description"
+    required: false
+  - name: pr_author
+    description: "Author of the pull request"
+    required: false
+  - name: target_branch
+    description: "Target branch for the merge"
+    required: false
+  - name: source_branch
+    description: "Source branch being merged"
+    required: false
+
+outputs:
+  - name: risk_classification
+    description: "Overall risk classification: LOW, MEDIUM, or HIGH"
+    required: true
+    format: paragraph
+  - name: changelog_summary
+    description: "Summary of what changed in updated dependencies"
+    required: true
+    format: paragraph
+  - name: impact_assessment
+    description: "Whether dependency changes affect APIs, types, or behaviors actually used"
+    required: true
+    format: list
+  - name: impacted_files
+    description: "Specific files and functions that could be affected by dependency changes"
+    required: true
+    format: list
+  - name: recommended_action
+    description: "Recommended action: auto-merge, quick-review (with focus areas), or full-review"
+    required: true
+    format: paragraph
+
+tools:
+  servers: []
+  required_tools: []
+  forbidden_tools: []
+
+constraints:
+  - Classify risk based on semver bump type, direct vs transitive status, API surface changes, and vulnerability presence
+  - "LOW: patch bumps of any dep, transitive minor bumps, no breaking changes, no vulnerabilities"
+  - "MEDIUM: minor bumps of direct dependencies, new features but no breaking changes, no critical vulns"
+  - "HIGH: major bumps, breaking changes, security advisories, deprecations of APIs we actually use"
+  - Only flag files that actually import the changed dependency (use get_dependency_usage results)
+  - Distinguish between a dependency being in go.mod and its APIs being actually called in the codebase
+  - If govulncheck shows a vulnerable function is not reachable, note this to lower risk classification
+  - When multiple dependencies are updated, assess each individually then provide an overall risk
+  - All fenced code blocks (```) must start at column 0 with no leading whitespace,
+    even when inside list items
+
+reasoning: chain_of_thought
+output_format: markdown
+
+context: |
+  You are performing dependency impact analysis on a pull request that updates
+  one or more dependencies. Your goal is to help engineers quickly assess
+  whether the dependency changes are safe to merge.
+
+  **Step 1: Gather Dependency Changes**
+  - Use get_dependency_diff with the PR's base and head refs to get structured
+    dependency changes (package names, versions, ecosystems, inline vulnerabilities)
+  - Note the change_type (added, removed, updated) for each dependency
+
+  **Step 2: Analyze Each Changed Dependency**
+  For each dependency that was added or updated:
+  - Use get_dependency_usage to check if it is directly imported and show the import chain
+  - Use get_upstream_changelog with the dependency's source_repository_url to fetch
+    release notes between the old and new versions
+  - Use get_security_advisories to check for known vulnerabilities affecting the
+    new version (use ecosystem and package name from the diff)
+
+  **Step 3: Vulnerability Reachability (Optional)**
+  - If run_govulncheck is available, use it to determine whether any vulnerable
+    functions are actually called in the codebase
+  - This provides the most accurate risk assessment for security issues
+
+  **Step 4: Classify Risk and Recommend Action**
+  Based on all gathered information:
+  - Classify the overall risk as LOW, MEDIUM, or HIGH
+  - If LOW risk and CI passes: recommend auto-merge
+  - If MEDIUM risk: recommend quick review with specific focus areas
+  - If HIGH risk: recommend full review with detailed explanation
+
+  **Step 5: Format Report**
+  Present findings as a structured markdown report with:
+  - Overall risk badge/classification
+  - Per-dependency breakdown (version change, changelog highlights, usage status)
+  - Security findings (if any)
+  - Impacted files list (only files that actually import changed deps)
+  - Recommended action with rationale
+
+  PR Title: {{pr_title}}
+  PR Description: {{pr_description}}
+  PR Author: {{pr_author}}
+  Target Branch: {{target_branch}}
+  Source Branch: {{source_branch}}
