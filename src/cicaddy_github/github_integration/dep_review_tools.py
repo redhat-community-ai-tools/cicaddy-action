@@ -33,9 +33,7 @@ _GOVULNCHECK_TIMEOUT = 300
 
 # Go module names: alphanumeric, dots, hyphens, underscores, slashes, tildes, plus
 # Must not contain whitespace, shell metacharacters, or control characters.
-_SAFE_MODULE_NAME = re.compile(
-    r"^[a-zA-Z0-9._/\-~+@]+$"
-)
+_SAFE_MODULE_NAME = re.compile(r"^[a-zA-Z0-9._/\-~+@]+$")
 
 # GitHub repository format: owner/repo
 _REPO_FORMAT = re.compile(r"^[\w.-]+/[\w.-]+$")
@@ -62,9 +60,7 @@ def _github_api_get(path: str, headers: dict[str, str]) -> bytes:
         return resp.read()
 
 
-def _github_api_post(
-    path: str, headers: dict[str, str], payload: bytes
-) -> bytes:
+def _github_api_post(path: str, headers: dict[str, str], payload: bytes) -> bytes:
     """Make a POST request to the GitHub API."""
     url = f"{_GITHUB_API}{path}"
     req = urllib.request.Request(
@@ -96,10 +92,7 @@ def _validate_repository(repository: str) -> str | None:
     if not repository:
         return "Error: GITHUB_REPOSITORY environment variable not set."
     if not _REPO_FORMAT.match(repository):
-        return (
-            f"Error: Invalid GITHUB_REPOSITORY format: {repository!r}. "
-            "Expected owner/repo."
-        )
+        return f"Error: Invalid GITHUB_REPOSITORY format: {repository!r}. Expected owner/repo."
     return None
 
 
@@ -122,10 +115,7 @@ def get_dependency_diff(base_ref: str, head_ref: str) -> str:
     if error:
         return error
 
-    path = (
-        f"/repos/{repository}/dependency-graph"
-        f"/compare/{base_ref}...{head_ref}"
-    )
+    path = f"/repos/{repository}/dependency-graph/compare/{base_ref}...{head_ref}"
     headers = _get_github_api_headers()
 
     try:
@@ -140,9 +130,7 @@ def get_dependency_diff(base_ref: str, head_ref: str) -> str:
                 "name": dep.get("name"),
                 "version": dep.get("version"),
                 "package_url": dep.get("package_url"),
-                "source_repository_url": dep.get(
-                    "source_repository_url"
-                ),
+                "source_repository_url": dep.get("source_repository_url"),
                 "license": dep.get("license"),
                 "vulnerabilities": dep.get("vulnerabilities", []),
             }
@@ -150,9 +138,7 @@ def get_dependency_diff(base_ref: str, head_ref: str) -> str:
 
         return json.dumps(changes, indent=2)
     except urllib.error.HTTPError as e:
-        return (
-            f"Error fetching dependency diff: HTTP {e.code} - {e.reason}"
-        )
+        return f"Error fetching dependency diff: HTTP {e.code} - {e.reason}"
     except Exception as e:
         logger.warning("Failed to fetch dependency diff: %s", e)
         return f"Error fetching dependency diff: {e}"
@@ -182,10 +168,7 @@ def get_dependency_usage(module_name: str) -> str:
 
     go_mod_path = os.path.join(working_dir, "go.mod")
     if not os.path.isfile(go_mod_path):
-        return (
-            "Error: No go.mod found in working directory. "
-            "Not a Go project."
-        )
+        return "Error: No go.mod found in working directory. Not a Go project."
 
     results: dict[str, str] = {}
 
@@ -198,9 +181,7 @@ def get_dependency_usage(module_name: str) -> str:
             cwd=working_dir,
             timeout=_GO_TOOLCHAIN_TIMEOUT,
         )
-        results["go_mod_why"] = (
-            proc.stdout.strip() or proc.stderr.strip()
-        )
+        results["go_mod_why"] = proc.stdout.strip() or proc.stderr.strip()
     except subprocess.TimeoutExpired:
         results["go_mod_why"] = "Timed out running go mod why"
     except FileNotFoundError:
@@ -216,14 +197,8 @@ def get_dependency_usage(module_name: str) -> str:
             timeout=_GO_TOOLCHAIN_TIMEOUT,
         )
         if proc.returncode == 0:
-            relevant = [
-                line
-                for line in proc.stdout.splitlines()
-                if module_name in line
-            ]
-            results["dependency_graph"] = (
-                "\n".join(relevant[:20]) if relevant else "Not in graph"
-            )
+            relevant = [line for line in proc.stdout.splitlines() if module_name in line]
+            results["dependency_graph"] = "\n".join(relevant[:20]) if relevant else "Not in graph"
         else:
             results["dependency_graph"] = proc.stderr.strip()
     except subprocess.TimeoutExpired:
@@ -235,9 +210,7 @@ def get_dependency_usage(module_name: str) -> str:
 
 
 @tool
-def get_upstream_changelog(
-    repo_url: str, old_version: str, new_version: str
-) -> str:
+def get_upstream_changelog(repo_url: str, old_version: str, new_version: str) -> str:
     """Fetch release notes between two versions of an upstream dependency.
 
     Tries GitHub Releases API first, falls back to auto-generated notes,
@@ -249,16 +222,11 @@ def get_upstream_changelog(
         new_version: New version tag (e.g. 'v1.1.0').
     """
     if not repo_url or not old_version or not new_version:
-        return (
-            "Error: repo_url, old_version, and new_version are required."
-        )
+        return "Error: repo_url, old_version, and new_version are required."
 
     owner_repo = _extract_owner_repo(repo_url)
     if not owner_repo:
-        return (
-            "Error: Could not parse GitHub owner/repo from URL: "
-            f"{repo_url}"
-        )
+        return f"Error: Could not parse GitHub owner/repo from URL: {repo_url}"
 
     headers = _get_github_api_headers()
 
@@ -275,9 +243,7 @@ def get_upstream_changelog(
         )
 
     # Strategy 2: Auto-generated release notes
-    auto_notes = _fetch_generated_notes(
-        owner_repo, old_version, new_version, headers
-    )
+    auto_notes = _fetch_generated_notes(owner_repo, old_version, new_version, headers)
     if auto_notes:
         return json.dumps(
             {
@@ -290,10 +256,7 @@ def get_upstream_changelog(
         )
 
     # Strategy 3: Commit comparison
-    path = (
-        f"/repos/{owner_repo}"
-        f"/compare/{old_version}...{new_version}"
-    )
+    path = f"/repos/{owner_repo}/compare/{old_version}...{new_version}"
     try:
         raw = _github_api_get(path, headers)
         data = json.loads(raw.decode())
@@ -312,19 +275,13 @@ def get_upstream_changelog(
             indent=2,
         )
     except Exception as e:
-        logger.warning(
-            "Failed to fetch changelog for %s: %s", owner_repo, e
-        )
-        return (
-            f"Error: Could not fetch changelog for {owner_repo}: {e}"
-        )
+        logger.warning("Failed to fetch changelog for %s: %s", owner_repo, e)
+        return f"Error: Could not fetch changelog for {owner_repo}: {e}"
 
 
 def _extract_owner_repo(url: str) -> str | None:
     """Extract 'owner/repo' from a GitHub URL."""
-    m = re.search(
-        r"github\.com/([^/]+/[^/]+?)(?:\.git)?/?$", url
-    )
+    m = re.search(r"github\.com/([^/]+/[^/]+?)(?:\.git)?/?$", url)
     if m:
         return m.group(1)
     if re.match(r"^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$", url):
@@ -332,9 +289,7 @@ def _extract_owner_repo(url: str) -> str | None:
     return None
 
 
-def _fetch_release_notes(
-    owner_repo: str, tag: str, headers: dict[str, str]
-) -> str | None:
+def _fetch_release_notes(owner_repo: str, tag: str, headers: dict[str, str]) -> str | None:
     """Fetch release notes for a specific tag."""
     tags_to_try = [tag]
     if not tag.startswith("v"):
@@ -351,13 +306,9 @@ def _fetch_release_notes(
             if body:
                 return body
         except urllib.error.HTTPError as e:
-            logger.debug(
-                "No release for tag %s (HTTP %s)", t, e.code
-            )
+            logger.debug("No release for tag %s (HTTP %s)", t, e.code)
         except json.JSONDecodeError as e:
-            logger.warning(
-                "Failed to parse release notes for tag %s: %s", t, e
-            )
+            logger.warning("Failed to parse release notes for tag %s: %s", t, e)
         except Exception as e:
             logger.warning(
                 "Unexpected error fetching release for tag %s: %s",
@@ -375,9 +326,7 @@ def _fetch_generated_notes(
 ) -> str | None:
     """Fetch auto-generated release notes between two tags."""
     path = f"/repos/{owner_repo}/releases/generate-notes"
-    payload = json.dumps(
-        {"tag_name": new_tag, "previous_tag_name": old_tag}
-    ).encode()
+    payload = json.dumps({"tag_name": new_tag, "previous_tag_name": old_tag}).encode()
     try:
         raw = _github_api_post(path, headers, payload)
         data = json.loads(raw.decode())
@@ -400,9 +349,7 @@ def _fetch_generated_notes(
 
 
 @tool
-def get_security_advisories(
-    ecosystem: str, package_name: str, version: str = ""
-) -> str:
+def get_security_advisories(ecosystem: str, package_name: str, version: str = "") -> str:
     """Query GitHub Global Security Advisories for a specific package.
 
     Returns known vulnerabilities with GHSA IDs, CVSS scores, severity,
@@ -440,19 +387,13 @@ def get_security_advisories(
                 "cve_id": adv.get("cve_id"),
                 "summary": adv.get("summary"),
                 "severity": adv.get("severity"),
-                "cvss_score": (
-                    adv.get("cvss", {}).get("score")
-                    if adv.get("cvss")
-                    else None
-                ),
+                "cvss_score": (adv.get("cvss", {}).get("score") if adv.get("cvss") else None),
                 "published_at": adv.get("published_at"),
                 "html_url": adv.get("html_url"),
                 "vulnerabilities": [
                     {
                         "package": v.get("package", {}).get("name"),
-                        "vulnerable_version_range": v.get(
-                            "vulnerable_version_range"
-                        ),
+                        "vulnerable_version_range": v.get("vulnerable_version_range"),
                         "patched_versions": v.get("patched_versions"),
                     }
                     for v in adv.get("vulnerabilities", [])
@@ -461,18 +402,16 @@ def get_security_advisories(
             advisories.append(advisory)
 
         if not advisories:
-            return json.dumps({
-                "status": "clean",
-                "message": (
-                    f"No advisories found for {package_name}"
-                ),
-            })
+            return json.dumps(
+                {
+                    "status": "clean",
+                    "message": (f"No advisories found for {package_name}"),
+                }
+            )
 
         return json.dumps(advisories, indent=2)
     except urllib.error.HTTPError as e:
-        return (
-            f"Error querying advisories: HTTP {e.code} - {e.reason}"
-        )
+        return f"Error querying advisories: HTTP {e.code} - {e.reason}"
     except Exception as e:
         logger.warning("Failed to query advisories: %s", e)
         return f"Error querying advisories: {e}"
@@ -489,20 +428,24 @@ def run_govulncheck() -> str:
     working_dir = _get_working_dir()
 
     if not shutil.which("govulncheck"):
-        return json.dumps({
-            "status": "skipped",
-            "reason": (
-                "govulncheck not installed. Install with: "
-                "go install golang.org/x/vuln/cmd/govulncheck@latest"
-            ),
-        })
+        return json.dumps(
+            {
+                "status": "skipped",
+                "reason": (
+                    "govulncheck not installed. Install with: "
+                    "go install golang.org/x/vuln/cmd/govulncheck@latest"
+                ),
+            }
+        )
 
     go_mod_path = os.path.join(working_dir, "go.mod")
     if not os.path.isfile(go_mod_path):
-        return json.dumps({
-            "status": "skipped",
-            "reason": "No go.mod found in working directory.",
-        })
+        return json.dumps(
+            {
+                "status": "skipped",
+                "reason": "No go.mod found in working directory.",
+            }
+        )
 
     try:
         result = subprocess.run(
@@ -519,29 +462,34 @@ def run_govulncheck() -> str:
         #   other = tool error
         # See: https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck
         if result.returncode not in (0, 3):
-            return json.dumps({
-                "status": "error",
-                "stderr": result.stderr.strip()[:2000],
-            })
+            return json.dumps(
+                {
+                    "status": "error",
+                    "stderr": result.stderr.strip()[:2000],
+                }
+            )
 
-        return json.dumps({
-            "status": "completed",
-            "output": result.stdout.strip()[:10000],
-        })
+        return json.dumps(
+            {
+                "status": "completed",
+                "output": result.stdout.strip()[:10000],
+            }
+        )
     except subprocess.TimeoutExpired:
-        return json.dumps({
-            "status": "error",
-            "reason": (
-                f"govulncheck timed out after "
-                f"{_GOVULNCHECK_TIMEOUT // 60} minutes"
-            ),
-        })
+        return json.dumps(
+            {
+                "status": "error",
+                "reason": (f"govulncheck timed out after {_GOVULNCHECK_TIMEOUT // 60} minutes"),
+            }
+        )
     except Exception as e:
         logger.warning("govulncheck failed: %s", e)
-        return json.dumps({
-            "status": "error",
-            "reason": str(e),
-        })
+        return json.dumps(
+            {
+                "status": "error",
+                "reason": str(e),
+            }
+        )
 
 
 def get_all_dep_review_tools() -> list:

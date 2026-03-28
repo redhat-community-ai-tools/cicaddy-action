@@ -30,18 +30,20 @@ class TestGetDependencyDiff:
     )
     @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
     def test_returns_dependency_changes(self, mock_api_get):
-        mock_api_get.return_value = json.dumps([
-            {
-                "change_type": "updated",
-                "ecosystem": "go",
-                "name": "golang.org/x/net",
-                "version": "0.21.0",
-                "package_url": "pkg:golang/golang.org/x/net@0.21.0",
-                "source_repository_url": "https://github.com/golang/net",
-                "license": "BSD-3-Clause",
-                "vulnerabilities": [],
-            }
-        ]).encode()
+        mock_api_get.return_value = json.dumps(
+            [
+                {
+                    "change_type": "updated",
+                    "ecosystem": "go",
+                    "name": "golang.org/x/net",
+                    "version": "0.21.0",
+                    "package_url": "pkg:golang/golang.org/x/net@0.21.0",
+                    "source_repository_url": "https://github.com/golang/net",
+                    "license": "BSD-3-Clause",
+                    "vulnerabilities": [],
+                }
+            ]
+        ).encode()
 
         result = get_dependency_diff(base_ref="main", head_ref="feature")
         data = json.loads(result)
@@ -65,24 +67,26 @@ class TestGetDependencyDiff:
     )
     @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
     def test_with_vulnerabilities(self, mock_api_get):
-        mock_api_get.return_value = json.dumps([
-            {
-                "change_type": "updated",
-                "ecosystem": "go",
-                "name": "golang.org/x/crypto",
-                "version": "0.17.0",
-                "package_url": "pkg:golang/golang.org/x/crypto@0.17.0",
-                "source_repository_url": "https://github.com/golang/crypto",
-                "license": "BSD-3-Clause",
-                "vulnerabilities": [
-                    {
-                        "severity": "high",
-                        "advisory_ghsa_id": "GHSA-test-1234",
-                        "advisory_summary": "SSH vulnerability",
-                    }
-                ],
-            }
-        ]).encode()
+        mock_api_get.return_value = json.dumps(
+            [
+                {
+                    "change_type": "updated",
+                    "ecosystem": "go",
+                    "name": "golang.org/x/crypto",
+                    "version": "0.17.0",
+                    "package_url": "pkg:golang/golang.org/x/crypto@0.17.0",
+                    "source_repository_url": "https://github.com/golang/crypto",
+                    "license": "BSD-3-Clause",
+                    "vulnerabilities": [
+                        {
+                            "severity": "high",
+                            "advisory_ghsa_id": "GHSA-test-1234",
+                            "advisory_summary": "SSH vulnerability",
+                        }
+                    ],
+                }
+            ]
+        ).encode()
 
         result = get_dependency_diff(base_ref="main", head_ref="fix-deps")
         data = json.loads(result)
@@ -138,10 +142,13 @@ class TestGetDependencyUsage:
         """Go module names can contain ~ (used in v2+ paths)."""
         # Should not be rejected by validation
         # (will fail at go mod why since no go.mod, but that's OK)
-        with patch(
-            "cicaddy_github.github_integration.dep_review_tools._get_working_dir",
-            return_value="/workspace",
-        ), patch("os.path.isfile", return_value=False):
+        with (
+            patch(
+                "cicaddy_github.github_integration.dep_review_tools._get_working_dir",
+                return_value="/workspace",
+            ),
+            patch("os.path.isfile", return_value=False),
+        ):
             result = get_dependency_usage(module_name="example.com/mod~v2")
         assert "No go.mod" in result
 
@@ -162,9 +169,11 @@ class TestGetUpstreamChangelog:
 
     @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
     def test_fetches_release_notes(self, mock_api_get):
-        mock_api_get.return_value = json.dumps({
-            "body": "## What's Changed\n- Fixed a bug\n- Added feature",
-        }).encode()
+        mock_api_get.return_value = json.dumps(
+            {
+                "body": "## What's Changed\n- Fixed a bug\n- Added feature",
+            }
+        ).encode()
 
         result = get_upstream_changelog(
             repo_url="https://github.com/golang/net",
@@ -182,19 +191,19 @@ class TestGetUpstreamChangelog:
     @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
     @patch("cicaddy_github.github_integration.dep_review_tools._fetch_generated_notes")
     @patch("cicaddy_github.github_integration.dep_review_tools._fetch_release_notes")
-    def test_falls_back_to_commits(
-        self, mock_release, mock_generated, mock_api_get
-    ):
+    def test_falls_back_to_commits(self, mock_release, mock_generated, mock_api_get):
         """When release and generated notes fail, falls back to commits."""
         mock_release.return_value = None
         mock_generated.return_value = None
-        mock_api_get.return_value = json.dumps({
-            "total_commits": 5,
-            "commits": [
-                {"commit": {"message": "fix: some bug"}},
-                {"commit": {"message": "feat: new thing"}},
-            ],
-        }).encode()
+        mock_api_get.return_value = json.dumps(
+            {
+                "total_commits": 5,
+                "commits": [
+                    {"commit": {"message": "fix: some bug"}},
+                    {"commit": {"message": "feat: new thing"}},
+                ],
+            }
+        ).encode()
 
         result = get_upstream_changelog(
             repo_url="https://github.com/owner/repo",
@@ -210,24 +219,26 @@ class TestGetSecurityAdvisories:
 
     @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
     def test_returns_advisories(self, mock_api_get):
-        mock_api_get.return_value = json.dumps([
-            {
-                "ghsa_id": "GHSA-test-1234",
-                "cve_id": "CVE-2024-1234",
-                "summary": "SSH vulnerability in x/crypto",
-                "severity": "high",
-                "cvss": {"score": 8.1},
-                "published_at": "2024-01-15T00:00:00Z",
-                "html_url": "https://github.com/advisories/GHSA-test-1234",
-                "vulnerabilities": [
-                    {
-                        "package": {"name": "golang.org/x/crypto"},
-                        "vulnerable_version_range": "< 0.17.0",
-                        "patched_versions": "0.17.0",
-                    }
-                ],
-            }
-        ]).encode()
+        mock_api_get.return_value = json.dumps(
+            [
+                {
+                    "ghsa_id": "GHSA-test-1234",
+                    "cve_id": "CVE-2024-1234",
+                    "summary": "SSH vulnerability in x/crypto",
+                    "severity": "high",
+                    "cvss": {"score": 8.1},
+                    "published_at": "2024-01-15T00:00:00Z",
+                    "html_url": "https://github.com/advisories/GHSA-test-1234",
+                    "vulnerabilities": [
+                        {
+                            "package": {"name": "golang.org/x/crypto"},
+                            "vulnerable_version_range": "< 0.17.0",
+                            "patched_versions": "0.17.0",
+                        }
+                    ],
+                }
+            ]
+        ).encode()
 
         result = get_security_advisories(
             ecosystem="go",
@@ -526,13 +537,9 @@ class TestGitHubDepReviewAgent:
             new_callable=AsyncMock,
         ):
             analysis_result = {"ai_analysis": "secret_token_here"}
-            await agent.send_notifications(
-                report={}, analysis_result=analysis_result
-            )
+            await agent.send_notifications(report={}, analysis_result=analysis_result)
 
-        agent.leak_detector.sanitize_text.assert_called_once_with(
-            "secret_token_here"
-        )
+        agent.leak_detector.sanitize_text.assert_called_once_with("secret_token_here")
         assert analysis_result["ai_analysis"] == "sanitized"
 
 
