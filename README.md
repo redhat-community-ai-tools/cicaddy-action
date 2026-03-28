@@ -5,7 +5,7 @@ GitHub Action that wraps [cicaddy](https://github.com/waynesun09/cicaddy) for ru
 ## Features
 
 - **AI-powered PR reviews** with optional Context7 MCP for up-to-date library documentation
-- **Dependency impact analysis** for dependency update PRs with risk classification
+- **Go dependency impact analysis** for Go dependency update PRs with risk classification
 - **Changelog report generation** from git tag diffs and release notes
 - **Multiple AI providers**: Gemini, OpenAI, Claude
 - **Secret redaction** via detect-secrets for safe public outputs
@@ -72,15 +72,16 @@ jobs:
           task_file: tasks/changelog_report.yml
 ```
 
-### Dependency Impact Analysis
+### Go Dependency Impact Analysis
 
-Analyze dependency update PRs (e.g. from Renovate or Dependabot) with
+Analyze Go dependency update PRs (e.g. from Renovate or Dependabot) with
 AI-assisted risk classification. The agent collects dependency diffs,
-usage analysis, upstream changelogs, and security advisories, then posts
-a structured impact assessment as a PR comment.
+usage analysis (via `go mod why`/`go mod graph`), upstream changelogs,
+and security advisories, then posts a structured impact assessment as a
+PR comment.
 
 ```yaml
-name: Dependency Impact Analysis
+name: Go Dependency Impact Analysis
 
 on:
   pull_request:
@@ -105,17 +106,17 @@ jobs:
           ai_provider: gemini
           ai_model: gemini-3-flash-preview
           ai_api_key: ${{ secrets.AI_API_KEY }}
-          task_file: tasks/dep_impact_review.yml
+          task_file: tasks/go_dep_impact_review.yml
           post_pr_comment: 'true'
           run_govulncheck: 'true'
         env:
-          AGENT_TASKS: dep_review
+          AGENT_TASKS: go_dep_review
 ```
 
-The `AGENT_TASKS: dep_review` env var activates the dependency review agent
-instead of the default PR code review agent. The `run_govulncheck` input
-enables vulnerability reachability analysis (requires Go and govulncheck
-installed in the runner).
+The `AGENT_TASKS: go_dep_review` env var activates the Go dependency review
+agent instead of the default PR code review agent. The `run_govulncheck`
+input enables vulnerability reachability analysis (requires Go and
+govulncheck installed in the runner).
 
 ## Inputs
 
@@ -148,7 +149,7 @@ installed in the runner).
 Create DSPy YAML task files to define custom analysis workflows. See `tasks/` for examples:
 - `tasks/pr_review.yml` — AI code review
 - `tasks/changelog_report.yml` — Changelog generation
-- `tasks/dep_impact_review.yml` — Dependency impact analysis
+- `tasks/go_dep_impact_review.yml` — Go dependency impact analysis
 
 ## Local Development
 
@@ -231,7 +232,7 @@ uv run cicaddy validate --env-file .env.my-review
 | `GITHUB_EVENT_NAME` | No | Set to `pull_request` for auto-detection (optional if `GITHUB_PR_NUMBER` is set) |
 | `GITHUB_PR_NUMBER` | Yes | PR number to review |
 | `POST_PR_COMMENT` | No | Post results as PR comment (`true`/`false`) |
-| `AGENT_TASKS` | No | Agent task type (e.g. `dep_review` for dependency analysis) |
+| `AGENT_TASKS` | No | Agent task type (e.g. `go_dep_review` for Go dependency analysis) |
 | `AI_TASK_FILE` | No | Path to DSPy YAML task file for custom workflows |
 | `RUN_GOVULNCHECK` | No | Run govulncheck for reachability analysis (`true`/`false`) |
 | `GIT_DIFF_CONTEXT_LINES` | No | Number of context lines in diffs (default: `10`) |

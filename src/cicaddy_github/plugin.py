@@ -11,7 +11,7 @@ def register_agents():
     from cicaddy.agent.factory import AgentFactory
 
     from cicaddy_github.github_integration.agents import (
-        GitHubDepReviewAgent,
+        GitHubGoDepReviewAgent,
         GitHubPRAgent,
         GitHubTaskAgent,
     )
@@ -19,7 +19,7 @@ def register_agents():
 
     AgentFactory.register("github_pr", GitHubPRAgent)
     AgentFactory.register("github_task", GitHubTaskAgent)
-    AgentFactory.register("github_dep_review", GitHubDepReviewAgent)
+    AgentFactory.register("github_go_dep_review", GitHubGoDepReviewAgent)
     AgentFactory.register_detector(_detect_github_agent_type, priority=40)
 
 

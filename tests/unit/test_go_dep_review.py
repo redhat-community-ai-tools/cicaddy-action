@@ -1,4 +1,4 @@
-"""Tests for dependency impact review tools and agent."""
+"""Tests for Go dependency impact review tools and agent."""
 
 import json
 import os
@@ -8,11 +8,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest  # noqa: F401 — used by pytest.raises and pytest.mark
 
-from cicaddy_github.github_integration.dep_review_tools import (
+from cicaddy_github.github_integration.go_dep_review_tools import (
     _extract_owner_repo,
     _github_api_post,
     _validate_repository,
-    get_all_dep_review_tools,
+    get_all_go_dep_review_tools,
     get_dependency_diff,
     get_dependency_usage,
     get_security_advisories,
@@ -28,7 +28,7 @@ class TestGetDependencyDiff:
         "os.environ",
         {"GITHUB_REPOSITORY": "owner/repo", "GITHUB_TOKEN": "test-token"},
     )
-    @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._github_api_get")
     def test_returns_dependency_changes(self, mock_api_get):
         mock_api_get.return_value = json.dumps(
             [
@@ -65,7 +65,7 @@ class TestGetDependencyDiff:
         "os.environ",
         {"GITHUB_REPOSITORY": "owner/repo", "GITHUB_TOKEN": "test-token"},
     )
-    @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._github_api_get")
     def test_with_vulnerabilities(self, mock_api_get):
         mock_api_get.return_value = json.dumps(
             [
@@ -97,7 +97,7 @@ class TestGetDependencyDiff:
 class TestGetDependencyUsage:
     """Test get_dependency_usage tool."""
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._get_working_dir")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._get_working_dir")
     @patch("subprocess.run")
     @patch("os.path.isfile", return_value=True)
     def test_returns_usage_info(self, mock_isfile, mock_run, mock_wd):
@@ -144,7 +144,7 @@ class TestGetDependencyUsage:
         # (will fail at go mod why since no go.mod, but that's OK)
         with (
             patch(
-                "cicaddy_github.github_integration.dep_review_tools._get_working_dir",
+                "cicaddy_github.github_integration.go_dep_review_tools._get_working_dir",
                 return_value="/workspace",
             ),
             patch("os.path.isfile", return_value=False),
@@ -156,7 +156,7 @@ class TestGetDependencyUsage:
         result = get_dependency_usage(module_name="")
         assert "Error" in result
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._get_working_dir")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._get_working_dir")
     @patch("os.path.isfile", return_value=False)
     def test_no_go_mod(self, mock_isfile, mock_wd):
         mock_wd.return_value = "/workspace"
@@ -167,7 +167,7 @@ class TestGetDependencyUsage:
 class TestGetUpstreamChangelog:
     """Test get_upstream_changelog tool."""
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._github_api_get")
     def test_fetches_release_notes(self, mock_api_get):
         mock_api_get.return_value = json.dumps(
             {
@@ -188,9 +188,9 @@ class TestGetUpstreamChangelog:
         result = get_upstream_changelog(repo_url="", old_version="v1.0", new_version="v2.0")
         assert "Error" in result
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
-    @patch("cicaddy_github.github_integration.dep_review_tools._fetch_generated_notes")
-    @patch("cicaddy_github.github_integration.dep_review_tools._fetch_release_notes")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._github_api_get")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._fetch_generated_notes")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._fetch_release_notes")
     def test_falls_back_to_commits(self, mock_release, mock_generated, mock_api_get):
         """When release and generated notes fail, falls back to commits."""
         mock_release.return_value = None
@@ -217,7 +217,7 @@ class TestGetUpstreamChangelog:
 class TestGetSecurityAdvisories:
     """Test get_security_advisories tool."""
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._github_api_get")
     def test_returns_advisories(self, mock_api_get):
         mock_api_get.return_value = json.dumps(
             [
@@ -251,7 +251,7 @@ class TestGetSecurityAdvisories:
         assert data[0]["severity"] == "high"
         assert data[0]["cvss_score"] == 8.1
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._github_api_get")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._github_api_get")
     def test_no_advisories_found(self, mock_api_get):
         mock_api_get.return_value = b"[]"
 
@@ -274,7 +274,7 @@ class TestRunGovulncheck:
         assert data["status"] == "skipped"
         assert "not installed" in data["reason"]
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._get_working_dir")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._get_working_dir")
     @patch("os.path.isfile", return_value=False)
     @patch("shutil.which", return_value="/usr/bin/govulncheck")
     def test_skipped_no_go_mod(self, mock_which, mock_isfile, mock_wd):
@@ -283,7 +283,7 @@ class TestRunGovulncheck:
         data = json.loads(result)
         assert data["status"] == "skipped"
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._get_working_dir")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._get_working_dir")
     @patch("os.path.isfile", return_value=True)
     @patch("shutil.which", return_value="/usr/bin/govulncheck")
     @patch("subprocess.run")
@@ -298,7 +298,7 @@ class TestRunGovulncheck:
         data = json.loads(result)
         assert data["status"] == "completed"
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._get_working_dir")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._get_working_dir")
     @patch("os.path.isfile", return_value=True)
     @patch("shutil.which", return_value="/usr/bin/govulncheck")
     @patch("subprocess.run")
@@ -313,7 +313,7 @@ class TestRunGovulncheck:
         data = json.loads(result)
         assert data["status"] == "completed"
 
-    @patch("cicaddy_github.github_integration.dep_review_tools._get_working_dir")
+    @patch("cicaddy_github.github_integration.go_dep_review_tools._get_working_dir")
     @patch("os.path.isfile", return_value=True)
     @patch("shutil.which", return_value="/usr/bin/govulncheck")
     @patch("subprocess.run")
@@ -352,59 +352,59 @@ class TestGetAllDepReviewTools:
     """Test tool listing."""
 
     def test_returns_all_tools(self):
-        tools = get_all_dep_review_tools()
+        tools = get_all_go_dep_review_tools()
         assert len(tools) == 5
 
     def test_tools_are_tool_instances(self):
         from cicaddy.tools.decorator import Tool
 
-        tools = get_all_dep_review_tools()
+        tools = get_all_go_dep_review_tools()
         for t in tools:
             assert isinstance(t, Tool)
 
 
-class TestDepReviewDetector:
-    """Test agent type detection for dep_review."""
+class TestGoDepReviewDetector:
+    """Test agent type detection for go_dep_review."""
 
-    def test_dep_review_with_pull_request_event(self):
+    def test_go_dep_review_with_pull_request_event(self):
         from cicaddy_github.github_integration.detector import _detect_github_agent_type
 
         settings = MagicMock()
         settings.github_pr_number = None
         with patch.dict(
             os.environ,
-            {"GITHUB_EVENT_NAME": "pull_request", "AGENT_TASKS": "dep_review"},
+            {"GITHUB_EVENT_NAME": "pull_request", "AGENT_TASKS": "go_dep_review"},
         ):
             result = _detect_github_agent_type(settings)
-        assert result == "github_dep_review"
+        assert result == "github_go_dep_review"
 
-    def test_dep_review_with_pr_number_fallback(self):
+    def test_go_dep_review_with_pr_number_fallback(self):
         from cicaddy_github.github_integration.detector import _detect_github_agent_type
 
         settings = MagicMock()
         settings.github_pr_number = "42"
         with patch.dict(
             os.environ,
-            {"GITHUB_EVENT_NAME": "push", "AGENT_TASKS": "dep_review"},
+            {"GITHUB_EVENT_NAME": "push", "AGENT_TASKS": "go_dep_review"},
         ):
             result = _detect_github_agent_type(settings)
-        assert result == "github_dep_review"
+        assert result == "github_go_dep_review"
 
-    def test_dep_review_without_pr_context(self):
-        """dep_review without PR context falls through to None."""
+    def test_go_dep_review_without_pr_context(self):
+        """go_dep_review without PR context falls through to None."""
         from cicaddy_github.github_integration.detector import _detect_github_agent_type
 
         settings = MagicMock()
         settings.github_pr_number = None
         with patch.dict(
             os.environ,
-            {"GITHUB_EVENT_NAME": "push", "AGENT_TASKS": "dep_review"},
+            {"GITHUB_EVENT_NAME": "push", "AGENT_TASKS": "go_dep_review"},
         ):
             result = _detect_github_agent_type(settings)
         assert result is None
 
-    def test_code_review_unaffected_by_dep_review(self):
-        """Without AGENT_TASKS=dep_review, PR events still return github_pr."""
+    def test_code_review_unaffected_by_go_dep_review(self):
+        """Without AGENT_TASKS=go_dep_review, PR events still return github_pr."""
         from cicaddy_github.github_integration.detector import _detect_github_agent_type
 
         settings = MagicMock()
@@ -417,59 +417,59 @@ class TestDepReviewDetector:
         assert result == "github_pr"
 
 
-class TestGitHubDepReviewAgent:
-    """Test GitHubDepReviewAgent class."""
+class TestGitHubGoDepReviewAgent:
+    """Test GitHubGoDepReviewAgent class."""
 
     def test_session_id(self):
-        from cicaddy_github.github_integration.agents import GitHubDepReviewAgent
+        from cicaddy_github.github_integration.agents import GitHubGoDepReviewAgent
 
         settings = MagicMock()
         settings.github_pr_number = "42"
-        agent = GitHubDepReviewAgent(settings=settings)
-        assert agent.get_session_id() == "dep_review_42"
+        agent = GitHubGoDepReviewAgent(settings=settings)
+        assert agent.get_session_id() == "go_dep_review_42"
 
     def test_session_id_unknown(self):
-        from cicaddy_github.github_integration.agents import GitHubDepReviewAgent
+        from cicaddy_github.github_integration.agents import GitHubGoDepReviewAgent
 
         settings = MagicMock()
         settings.github_pr_number = None
-        agent = GitHubDepReviewAgent(settings=settings)
-        assert agent.get_session_id() == "dep_review_unknown"
+        agent = GitHubGoDepReviewAgent(settings=settings)
+        assert agent.get_session_id() == "go_dep_review_unknown"
 
     def test_comment_marker_is_unique(self):
         from cicaddy_github.github_integration.agents import (
-            BOT_COMMENT_MARKER_DEP_REVIEW,
+            BOT_COMMENT_MARKER_GO_DEP_REVIEW,
             BOT_COMMENT_MARKER_PR_REVIEW,
         )
 
-        assert BOT_COMMENT_MARKER_DEP_REVIEW != BOT_COMMENT_MARKER_PR_REVIEW
-        assert "dep-review" in BOT_COMMENT_MARKER_DEP_REVIEW
+        assert BOT_COMMENT_MARKER_GO_DEP_REVIEW != BOT_COMMENT_MARKER_PR_REVIEW
+        assert "go-dep-review" in BOT_COMMENT_MARKER_GO_DEP_REVIEW
 
     def test_format_dep_review_comment(self):
         from cicaddy_github.github_integration.agents import (
-            BOT_COMMENT_MARKER_DEP_REVIEW,
-            GitHubDepReviewAgent,
+            BOT_COMMENT_MARKER_GO_DEP_REVIEW,
+            GitHubGoDepReviewAgent,
         )
 
         settings = MagicMock()
         settings.github_pr_number = "42"
-        agent = GitHubDepReviewAgent(settings=settings)
+        agent = GitHubGoDepReviewAgent(settings=settings)
 
         analysis_result = {"ai_analysis": "## Risk: LOW\nAll deps are safe."}
         comment = agent._format_dep_review_comment(analysis_result)
 
-        assert comment.startswith(BOT_COMMENT_MARKER_DEP_REVIEW)
+        assert comment.startswith(BOT_COMMENT_MARKER_GO_DEP_REVIEW)
         assert "Risk: LOW" in comment
         assert "Dependency Impact Analysis" in comment
         assert "cicaddy-footer" in comment
 
     @pytest.mark.asyncio
     async def test_get_analysis_context(self):
-        from cicaddy_github.github_integration.agents import GitHubDepReviewAgent
+        from cicaddy_github.github_integration.agents import GitHubGoDepReviewAgent
 
         settings = MagicMock()
         settings.github_pr_number = "42"
-        agent = GitHubDepReviewAgent(settings=settings)
+        agent = GitHubGoDepReviewAgent(settings=settings)
         agent.platform_analyzer = None
 
         with patch.dict(
@@ -482,7 +482,7 @@ class TestGitHubDepReviewAgent:
         ):
             context = await agent.get_analysis_context()
 
-        assert context["analysis_type"] == "dependency_review"
+        assert context["analysis_type"] == "go_dependency_review"
         assert context["pr_number"] == "42"
         assert context["repository"] == "owner/repo"
 
@@ -490,19 +490,19 @@ class TestGitHubDepReviewAgent:
     async def test_send_notifications_posts_comment(self):
         from unittest.mock import AsyncMock
 
-        from cicaddy_github.github_integration.agents import GitHubDepReviewAgent
+        from cicaddy_github.github_integration.agents import GitHubGoDepReviewAgent
 
         settings = MagicMock()
         settings.github_pr_number = "42"
         settings.post_pr_comment = True
-        agent = GitHubDepReviewAgent(settings=settings)
+        agent = GitHubGoDepReviewAgent(settings=settings)
 
         mock_analyzer = MagicMock()
         mock_analyzer.post_pr_comment = AsyncMock()
         agent.platform_analyzer = mock_analyzer
 
         with patch.object(
-            GitHubDepReviewAgent.__bases__[0],
+            GitHubGoDepReviewAgent.__bases__[0],
             "send_notifications",
             new_callable=AsyncMock,
         ):
@@ -520,19 +520,19 @@ class TestGitHubDepReviewAgent:
     async def test_send_notifications_sanitizes_output(self):
         from unittest.mock import AsyncMock
 
-        from cicaddy_github.github_integration.agents import GitHubDepReviewAgent
+        from cicaddy_github.github_integration.agents import GitHubGoDepReviewAgent
 
         settings = MagicMock()
         settings.github_pr_number = "42"
         settings.post_pr_comment = False
-        agent = GitHubDepReviewAgent(settings=settings)
+        agent = GitHubGoDepReviewAgent(settings=settings)
         agent.platform_analyzer = None
 
         agent.leak_detector = MagicMock()
         agent.leak_detector.sanitize_text.return_value = "sanitized"
 
         with patch.object(
-            GitHubDepReviewAgent.__bases__[0],
+            GitHubGoDepReviewAgent.__bases__[0],
             "send_notifications",
             new_callable=AsyncMock,
         ):

@@ -11,14 +11,14 @@ from cicaddy.utils.logger import get_logger
 
 from cicaddy_github.config.settings import Settings
 from cicaddy_github.github_integration.analyzer import GitHubAnalyzer
-from cicaddy_github.github_integration.dep_review_tools import get_all_dep_review_tools
+from cicaddy_github.github_integration.go_dep_review_tools import get_all_go_dep_review_tools
 from cicaddy_github.github_integration.tools import get_all_tools
 from cicaddy_github.security.leak_detector import LeakDetector
 
 logger = get_logger(__name__)
 
 BOT_COMMENT_MARKER_PR_REVIEW = "<!-- cicaddy-action:pr-review -->"
-BOT_COMMENT_MARKER_DEP_REVIEW = "<!-- cicaddy-action:dep-review -->"
+BOT_COMMENT_MARKER_GO_DEP_REVIEW = "<!-- cicaddy-action:go-dep-review -->"
 
 # Pattern to detect a review verdict in the AI analysis output.
 # The AI is instructed to include a line like "VERDICT: APPROVE" or
@@ -395,11 +395,12 @@ Please provide your comprehensive analysis in markdown format.
         return f"pr_{self.pr_number or 'unknown'}"
 
 
-class GitHubDepReviewAgent(BaseAIAgent):
-    """AI Agent for dependency impact analysis on pull requests.
+class GitHubGoDepReviewAgent(BaseAIAgent):
+    """AI Agent for Go dependency impact analysis on pull requests.
 
-    Collects dependency context (diffs, usage, changelogs, advisories)
-    and uses an LLM to produce a structured risk assessment comment.
+    Collects Go dependency context (diffs, usage via go mod, changelogs,
+    advisories, govulncheck) and uses an LLM to produce a structured
+    risk assessment comment.
     """
 
     def __init__(self, settings: Settings | None = None):
@@ -416,7 +417,7 @@ class GitHubDepReviewAgent(BaseAIAgent):
         for t in get_all_tools():
             self.local_tool_registry.register(t)
         # Register dependency review tools
-        for t in get_all_dep_review_tools():
+        for t in get_all_go_dep_review_tools():
             self.local_tool_registry.register(t)
         logger.info(f"Registered tools: {self.local_tool_registry.list_tool_names()}")
 
@@ -438,7 +439,7 @@ class GitHubDepReviewAgent(BaseAIAgent):
     async def get_analysis_context(self) -> dict[str, Any]:
         """Get dependency review context including PR data."""
         context: dict[str, Any] = {
-            "analysis_type": "dependency_review",
+            "analysis_type": "go_dependency_review",
             "repository": os.getenv("GITHUB_REPOSITORY", ""),
             "ref": os.getenv("GITHUB_REF", ""),
             "sha": os.getenv("GITHUB_SHA", ""),
@@ -528,7 +529,7 @@ Format your response as markdown with these sections:
             try:
                 comment = self._format_dep_review_comment(analysis_result)
                 await self.platform_analyzer.post_pr_comment(
-                    int(self.pr_number), comment, comment_marker=BOT_COMMENT_MARKER_DEP_REVIEW
+                    int(self.pr_number), comment, comment_marker=BOT_COMMENT_MARKER_GO_DEP_REVIEW
                 )
                 logger.info(f"Posted dep review to PR #{self.pr_number}")
             except Exception as e:
@@ -542,7 +543,7 @@ Format your response as markdown with these sections:
 
     def _format_dep_review_comment(self, analysis_result: dict[str, Any]) -> str:
         """Format analysis results as a dep review PR comment."""
-        comment = f"{BOT_COMMENT_MARKER_DEP_REVIEW}\n"
+        comment = f"{BOT_COMMENT_MARKER_GO_DEP_REVIEW}\n"
 
         if "ai_analysis" in analysis_result:
             cleaned = strip_markdown_wrapper(analysis_result["ai_analysis"])
@@ -558,4 +559,4 @@ Format your response as markdown with these sections:
 
     def get_session_id(self) -> str:
         """Get unique session ID for this dep review."""
-        return f"dep_review_{self.pr_number or 'unknown'}"
+        return f"go_dep_review_{self.pr_number or 'unknown'}"

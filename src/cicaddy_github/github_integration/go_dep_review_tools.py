@@ -1,8 +1,8 @@
-"""Local tools for dependency impact analysis on pull requests.
+"""Local tools for Go dependency impact analysis on pull requests.
 
-These tools collect dependency context for AI-assisted impact assessment:
+These tools collect Go dependency context for AI-assisted impact assessment:
 - Dependency diffs via GitHub Dependency Review API
-- Usage analysis via Go toolchain
+- Usage analysis via Go toolchain (go mod why, go mod graph)
 - Upstream changelogs via GitHub Releases API
 - Security advisories via GitHub Global Advisories API
 - Vulnerability reachability via govulncheck
@@ -492,8 +492,8 @@ def run_govulncheck() -> str:
         )
 
 
-def get_all_dep_review_tools() -> list:
-    """Return all dependency review tools for registration."""
+def get_all_go_dep_review_tools() -> list:
+    """Return all Go dependency review tools for registration."""
     return [
         get_dependency_diff,
         get_dependency_usage,

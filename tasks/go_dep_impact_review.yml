@@ -1,6 +1,6 @@
-name: dependency_impact_review
-description: "AI-assisted dependency impact analysis for pull requests"
-type: dependency_review
+name: go_dependency_impact_review
+description: "AI-assisted Go dependency impact analysis for pull requests"
+type: go_dependency_review
 version: "1.0"
 
 inputs:
