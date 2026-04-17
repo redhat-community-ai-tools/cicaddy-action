@@ -34,11 +34,11 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: redhat-community-ai-tools/cicaddy-action@v0.4.0
+      - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
           ai_provider: gemini
           ai_model: gemini-3-flash-preview
@@ -60,11 +60,11 @@ jobs:
   changelog:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: redhat-community-ai-tools/cicaddy-action@v0.4.0
+      - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
           ai_provider: gemini
           ai_model: gemini-3-flash-preview
@@ -97,11 +97,11 @@ jobs:
   dep-review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.22'
-      - uses: redhat-community-ai-tools/cicaddy-action@v0.4.0
+      - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
           ai_provider: gemini
           ai_model: gemini-3-flash-preview
@@ -139,16 +139,16 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-repo'
           service_account: 'cicaddy@my-project.iam.gserviceaccount.com'
 
-      - uses: redhat-community-ai-tools/cicaddy-action@v0.4.0
+      - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
           ai_provider: anthropic-vertex
           ai_model: claude-sonnet-4-6
@@ -161,7 +161,7 @@ jobs:
 > account keys. If you must use a key, store the JSON as a GitHub secret and pass
 > it via `google-github-actions/auth` with `credentials_json`:
 > ```yaml
-> - uses: google-github-actions/auth@v2
+> - uses: google-github-actions/auth@v3
 >   with:
 >     credentials_json: ${{ secrets.GCP_SA_KEY }}
 > ```
