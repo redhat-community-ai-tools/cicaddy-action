@@ -13,18 +13,32 @@ case "${AI_PROVIDER}" in
   openai)  export OPENAI_API_KEY="${INPUT_AI_API_KEY}" ;;
   claude|anthropic) export ANTHROPIC_API_KEY="${INPUT_AI_API_KEY}" ;;
   anthropic-vertex)
-    export ANTHROPIC_VERTEX_PROJECT_ID="${INPUT_VERTEX_PROJECT_ID}"
-    export CLOUD_ML_REGION="${INPUT_CLOUD_ML_REGION:-us-east5}"
-    if [[ -z "${ANTHROPIC_VERTEX_PROJECT_ID}" ]]; then
-      echo "ERROR: ai_provider 'anthropic-vertex' requires vertex_project_id input"
-      exit 3
-    fi
-    # GOOGLE_APPLICATION_CREDENTIALS must be set by google-github-actions/auth
-    if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
-      echo "WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Use google-github-actions/auth before this step."
-    fi
+    ;;  # handled below
+  *)
+    echo "ERROR: Unknown ai_provider '${AI_PROVIDER}'. Supported: gemini, openai, claude, anthropic, anthropic-vertex"
+    exit 3
     ;;
 esac
+
+# Validate API key for non-vertex providers
+if [[ "${AI_PROVIDER}" != "anthropic-vertex" && -z "${INPUT_AI_API_KEY}" ]]; then
+  echo "ERROR: ai_api_key is required for provider '${AI_PROVIDER}'"
+  exit 3
+fi
+
+# Handle anthropic-vertex provider setup
+if [[ "${AI_PROVIDER}" == "anthropic-vertex" ]]; then
+  export ANTHROPIC_VERTEX_PROJECT_ID="${INPUT_VERTEX_PROJECT_ID}"
+  export CLOUD_ML_REGION="${INPUT_CLOUD_ML_REGION:-us-east5}"
+  if [[ -z "${ANTHROPIC_VERTEX_PROJECT_ID}" ]]; then
+    echo "ERROR: ai_provider 'anthropic-vertex' requires vertex_project_id input"
+    exit 3
+  fi
+  # GOOGLE_APPLICATION_CREDENTIALS must be set by google-github-actions/auth
+  if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+    echo "WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Use google-github-actions/auth before this step."
+  fi
+fi
 
 # Resolve file paths to absolute before cd into .cicaddy/ subdirectory.
 # Rejects absolute paths and parent directory traversal to prevent

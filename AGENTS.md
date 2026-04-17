@@ -65,7 +65,7 @@ cicaddy-action/
 
 ### Dependencies
 
-- Depends on `cicaddy>=0.6.0` (core library) and `PyGithub>=2.1.0`
+- Depends on `cicaddy>=0.7.0` (core library) and `PyGithub>=2.1.0`
 - Follows the same agent/factory patterns as the core library
 - Extends `BaseAIAgent` from cicaddy
 
@@ -82,9 +82,11 @@ All inputs use **underscores** (not hyphens) for Docker container compatibility:
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `ai_provider` | Yes | `gemini`, `openai`, `claude` |
+| `ai_provider` | Yes | `gemini`, `openai`, `claude`, `anthropic-vertex` |
 | `ai_model` | Yes | Model identifier |
-| `ai_api_key` | Yes* | AI provider API key (mapped to provider-specific env var) |
+| `ai_api_key` | No* | AI provider API key (not needed for `anthropic-vertex`) |
+| `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
+| `cloud_ml_region` | No | Vertex AI region (default: `us-east5`) |
 | `task_file` | No | Path to DSPy YAML task file |
 | `task_prompt` | No | Inline task prompt |
 | `post_pr_comment` | No | Post results as PR comment (default: `false`) |
