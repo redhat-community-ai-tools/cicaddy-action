@@ -7,7 +7,7 @@ GitHub Action that wraps [cicaddy](https://github.com/waynesun09/cicaddy) for ru
 - **AI-powered PR reviews** with optional Context7 MCP for up-to-date library documentation
 - **Go dependency impact analysis** for Go dependency update PRs with risk classification
 - **Changelog report generation** from git tag diffs and release notes
-- **Multiple AI providers**: Gemini, OpenAI, Claude
+- **Multiple AI providers**: Gemini, OpenAI, Claude, Claude via Vertex AI
 - **Secret redaction** via detect-secrets for safe public outputs
 - **DSPy YAML task definitions** for customizable analysis workflows
 
@@ -118,13 +118,65 @@ agent instead of the default PR code review agent. The `run_govulncheck`
 input enables vulnerability reachability analysis (requires Go and
 govulncheck installed in the runner).
 
+### Claude via Vertex AI (GCP)
+
+Uses Google Cloud Workload Identity Federation for keyless authentication — no
+service account JSON keys to manage. This is the recommended approach for GCP.
+
+```yaml
+name: PR Review (Vertex AI)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  id-token: write       # Required for Workload Identity Federation
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-repo'
+          service_account: 'cicaddy@my-project.iam.gserviceaccount.com'
+
+      - uses: redhat-community-ai-tools/cicaddy-action@v0.4.0
+        with:
+          ai_provider: anthropic-vertex
+          ai_model: claude-sonnet-4-6
+          vertex_project_id: my-project
+          task_file: tasks/pr_review.yml
+          post_pr_comment: 'true'
+```
+
+> **Security**: Prefer Workload Identity Federation (shown above) over service
+> account keys. If you must use a key, store the JSON as a GitHub secret and pass
+> it via `google-github-actions/auth` with `credentials_json`:
+> ```yaml
+> - uses: google-github-actions/auth@v2
+>   with:
+>     credentials_json: ${{ secrets.GCP_SA_KEY }}
+> ```
+> The auth action sets `GOOGLE_APPLICATION_CREDENTIALS` automatically — never
+> write keys to disk manually or echo them in scripts.
+
 ## Inputs
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `ai_provider` | Yes | AI provider: `gemini`, `openai`, `claude` |
+| `ai_provider` | Yes | AI provider: `gemini`, `openai`, `claude`, `anthropic-vertex` |
 | `ai_model` | Yes | Model identifier |
-| `ai_api_key` | Yes | AI provider API key |
+| `ai_api_key` | No | AI provider API key (not needed for `anthropic-vertex`) |
+| `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
+| `cloud_ml_region` | No | Vertex AI region (default: `us-east5`) |
 | `task_file` | No | Path to DSPy YAML task file |
 | `task_prompt` | No | Inline task prompt (alternative to task_file) |
 | `report_template` | No | Path to custom HTML report template |
@@ -224,9 +276,11 @@ uv run cicaddy validate --env-file .env.my-review
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `AI_PROVIDER` | Yes | `gemini`, `openai`, or `claude` |
+| `AI_PROVIDER` | Yes | `gemini`, `openai`, `claude`, or `anthropic-vertex` |
 | `AI_MODEL` | Yes | Model identifier (e.g. `gemini-3-flash-preview`) |
-| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Yes | API key matching the provider |
+| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Yes* | API key matching the provider (*not needed for `anthropic-vertex`) |
+| `ANTHROPIC_VERTEX_PROJECT_ID` | No | GCP project ID (required for `anthropic-vertex`) |
+| `CLOUD_ML_REGION` | No | Vertex AI region (default: `us-east5`) |
 | `GITHUB_TOKEN` | Yes | GitHub personal access token |
 | `GITHUB_REPOSITORY` | Yes | Target repo in `owner/repo` format |
 | `GITHUB_EVENT_NAME` | No | Set to `pull_request` for auto-detection (optional if `GITHUB_PR_NUMBER` is set) |

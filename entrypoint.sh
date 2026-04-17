@@ -12,6 +12,18 @@ case "${AI_PROVIDER}" in
   gemini)  export GEMINI_API_KEY="${INPUT_AI_API_KEY}" ;;
   openai)  export OPENAI_API_KEY="${INPUT_AI_API_KEY}" ;;
   claude|anthropic) export ANTHROPIC_API_KEY="${INPUT_AI_API_KEY}" ;;
+  anthropic-vertex)
+    export ANTHROPIC_VERTEX_PROJECT_ID="${INPUT_VERTEX_PROJECT_ID}"
+    export CLOUD_ML_REGION="${INPUT_CLOUD_ML_REGION:-us-east5}"
+    if [[ -z "${ANTHROPIC_VERTEX_PROJECT_ID}" ]]; then
+      echo "ERROR: ai_provider 'anthropic-vertex' requires vertex_project_id input"
+      exit 3
+    fi
+    # GOOGLE_APPLICATION_CREDENTIALS must be set by google-github-actions/auth
+    if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+      echo "WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Use google-github-actions/auth before this step."
+    fi
+    ;;
 esac
 
 # Resolve file paths to absolute before cd into .cicaddy/ subdirectory.
