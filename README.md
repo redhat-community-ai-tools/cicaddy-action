@@ -122,55 +122,7 @@ agent instead of the default PR code review agent. The `run_govulncheck`
 input enables vulnerability reachability analysis (requires Go and
 govulncheck installed in the runner).
 
-### Claude via Vertex AI (GCP)
-
-Uses Google Cloud Workload Identity Federation for keyless authentication — no
-service account JSON keys to manage. This is the recommended approach for GCP.
-
-```yaml
-name: PR Review (Vertex AI)
-
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-permissions:
-  contents: read
-  id-token: write       # Required for Workload Identity Federation
-  pull-requests: write
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-repo'
-          service_account: 'cicaddy@my-project.iam.gserviceaccount.com'
-
-      - uses: redhat-community-ai-tools/cicaddy-action@main
-        with:
-          ai_provider: anthropic-vertex
-          ai_model: claude-sonnet-4-6
-          vertex_project_id: my-project
-          task_file: tasks/pr_review.yml
-          post_pr_comment: 'true'
-```
-
-> **Security**: Prefer Workload Identity Federation (shown above) over service
-> account keys. If you must use a key, store the JSON as a GitHub secret and pass
-> it via `google-github-actions/auth` with `credentials_json`:
-> ```yaml
-> - uses: google-github-actions/auth@v3
->   with:
->     credentials_json: ${{ secrets.GCP_SA_KEY }}
-> ```
-> The auth action sets `GOOGLE_APPLICATION_CREDENTIALS` automatically — never
-> write keys to disk manually or echo them in scripts.
+See [docs/providers.md](docs/providers.md) for provider-specific configuration including Claude via Vertex AI (GCP), OpenAI, and Anthropic API setup.
 
 ## Inputs
 
