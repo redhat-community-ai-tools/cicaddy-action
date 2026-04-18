@@ -125,41 +125,6 @@ govulncheck installed in the runner).
 
 See [docs/providers.md](docs/providers.md) for provider-specific configuration including Claude via Vertex AI (GCP), OpenAI, and Anthropic API setup.
 
-### Delegated PR Review
-
-Enable sub-agent delegation to split PR reviews across specialized AI reviewers that run in parallel:
-
-```yaml
-name: Delegated PR Review
-
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-permissions:
-  pull-requests: write
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - uses: redhat-community-ai-tools/cicaddy-action@main
-        with:
-          ai_provider: gemini
-          ai_model: gemini-3-flash-preview
-          ai_api_key: ${{ secrets.AI_API_KEY }}
-          task_file: tasks/pr_review.yml
-          post_pr_comment: 'true'
-          delegation_mode: 'auto'
-          max_sub_agents: '3'
-```
-
-The triage AI analyzes the diff and activates relevant specialist reviewers (security, architecture, performance, etc.). Results are aggregated into a single PR comment with per-agent sections. See [docs/delegation.md](docs/delegation.md) for full configuration and custom agent setup.
-
 ## Inputs
 
 | Input | Required | Description |
