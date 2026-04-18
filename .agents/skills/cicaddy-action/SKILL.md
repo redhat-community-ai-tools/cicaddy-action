@@ -225,7 +225,7 @@ the `safe-to-review` label. The label is auto-removed on new pushes to prevent
 TOCTOU bypasses.
 
 ```yaml
-- uses: redhat-community-ai-tools/cicaddy-action@v0.4.0
+- uses: redhat-community-ai-tools/cicaddy-action@v0.5.0
   with:
     ai_provider: gemini
     ai_model: gemini-3-flash-preview
@@ -349,26 +349,27 @@ For `github_pr` agent type:
 
 ### Plugin Hooks
 
-The `cicaddy.delegation_blocked_tools` entry point blocks GitHub write operations in sub-agents:
-- Posting PR comments
-- Submitting PR reviews
-- Merging PRs
-- Managing labels
-- Editing issues
+The `cicaddy.delegation_blocked_tools` entry point blocks write and side-effect operations in sub-agents:
+- Posting PR comments and submitting reviews
+- Merging PRs and managing labels
+- Creating/editing/closing issues
+- Branch and tag operations
+- Sending Slack notifications
 
-Sub-agents only perform analysis; they cannot modify GitHub state.
+Sub-agents only perform analysis; they cannot modify GitHub state or send notifications.
 
 ### PR Comment Output
 
 When delegation is active, PR comments include a collapsible metadata block:
 ```markdown
-<details>
-<summary>🤖 Delegation Info</summary>
+<details><summary>Delegation details: 3 agent(s) succeeded (12.4s)</summary>
 
-- **Agents Run**: 3 (security-reviewer, architecture-reviewer, api-reviewer)
-- **Success**: 3/3
-- **Execution Time**: 12.4s
-- **Triage Rationale**: PR modifies authentication middleware, API routes, and database schema
+Agents: security-reviewer, architecture-reviewer, api-reviewer
+
+- **security-reviewer**: PR modifies authentication middleware
+- **architecture-reviewer**: Significant module boundary changes
+- **api-reviewer**: REST endpoint modifications detected
+
 </details>
 ```
 

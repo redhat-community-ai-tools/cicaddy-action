@@ -31,6 +31,83 @@ class TestAgentType:
         assert agent._get_agent_type() == "task"
 
 
+class TestFormatPrCommentDelegation:
+    """Test _format_pr_comment delegation metadata rendering."""
+
+    def _make_agent(self):
+        agent = GitHubPRAgent.__new__(GitHubPRAgent)
+        agent.pr_number = "42"
+        return agent
+
+    def test_delegation_metadata_included(self):
+        """Delegation details block rendered when delegation_mode=auto."""
+        agent = self._make_agent()
+        result = agent._format_pr_comment(
+            {
+                "ai_analysis": "Review text.",
+                "delegation_mode": "auto",
+                "delegation_plan": {
+                    "agents": [
+                        {"name": "security-reviewer", "rationale": "Auth changes"},
+                        {"name": "general-reviewer", "rationale": "General review"},
+                    ],
+                },
+                "agents_succeeded": 2,
+                "agents_failed": 0,
+                "total_execution_time": 8.3,
+            }
+        )
+        assert "Delegation details: 2 agent(s) succeeded" in result
+        assert "8.3s" in result
+        assert "security-reviewer" in result
+        assert "general-reviewer" in result
+        assert "Auth changes" in result
+        assert "<details>" in result
+
+    def test_delegation_metadata_shows_failures(self):
+        """Failed agent count appears in summary."""
+        agent = self._make_agent()
+        result = agent._format_pr_comment(
+            {
+                "ai_analysis": "Review.",
+                "delegation_mode": "auto",
+                "delegation_plan": {
+                    "agents": [{"name": "sec", "rationale": "x"}],
+                },
+                "agents_succeeded": 1,
+                "agents_failed": 2,
+                "total_execution_time": 5.0,
+            }
+        )
+        assert "1 agent(s) succeeded" in result
+        assert "2 failed" in result
+
+    def test_no_delegation_metadata_without_auto(self):
+        """No delegation block when delegation_mode is not auto."""
+        agent = self._make_agent()
+        result = agent._format_pr_comment(
+            {
+                "ai_analysis": "Review text.",
+            }
+        )
+        assert "Delegation details" not in result
+        assert "<details>" not in result
+
+    def test_no_delegation_metadata_without_agents(self):
+        """No delegation block when delegation_plan has no agents."""
+        agent = self._make_agent()
+        result = agent._format_pr_comment(
+            {
+                "ai_analysis": "Review.",
+                "delegation_mode": "auto",
+                "delegation_plan": {"agents": []},
+                "agents_succeeded": 0,
+                "agents_failed": 0,
+            }
+        )
+        assert "Delegation details" not in result
+
+
 class TestDedentCodeBlocks:
     """Test code block dedenting for AI-generated markdown."""
 

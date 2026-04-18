@@ -130,15 +130,25 @@ User-defined agents with the same name as a built-in agent replace it.
 Sub-agents receive a filtered subset of the parent's tools:
 
 1. **Base blocked**: `delegate_task` (prevents recursive delegation)
-2. **Plugin blocked**: cicaddy-action registers GitHub write operations (posting comments, submitting reviews, merging PRs, managing labels, etc.)
+2. **Plugin blocked**: cicaddy-action registers write and side-effect operations (posting comments, submitting reviews, merging PRs, managing labels, sending Slack notifications, etc.)
 3. **Per-agent**: `SubAgentSpec.allowed_tools` (strict whitelist) and `blocked_tools` (additional blocks)
 
 ## PR Comment Output
 
-When delegation is active, the PR comment includes a collapsible details block showing:
-- Number of agents that succeeded/failed
-- Total execution time
-- Agent names and triage rationale
+When delegation is active, the PR comment includes a collapsible details block:
+
+```markdown
+<details><summary>Delegation details: 2 agent(s) succeeded (8.3s)</summary>
+
+Agents: security-reviewer, general-reviewer
+
+- **security-reviewer**: PR modifies authentication middleware
+- **general-reviewer**: General code quality review
+
+</details>
+```
+
+If any agents fail, the summary shows: `2 agent(s) succeeded, 1 failed (12.4s)`.
 
 ## DSPy Task Files + Delegation
 
