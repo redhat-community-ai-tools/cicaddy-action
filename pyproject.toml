@@ -43,6 +43,9 @@ github = "cicaddy_github.plugin:get_env_vars"
 [project.entry-points."cicaddy.validators"]
 github = "cicaddy_github.plugin:validate"
 
+[project.entry-points."cicaddy.delegation_blocked_tools"]
+github = "cicaddy_github.plugin:get_delegation_blocked_tools"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/cicaddy_github"]
 

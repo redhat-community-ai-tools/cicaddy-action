@@ -71,6 +71,32 @@ def config_section(config, mask_fn, sensitive_vars):
             print(f"  {var}: {value or '(not set)'}")
 
 
+def get_delegation_blocked_tools() -> set[str]:
+    """Return tool names that delegation sub-agents must NOT use.
+
+    These are write/mutating operations on the GitHub platform that only
+    the parent agent should perform (posting comments, submitting reviews, etc.).
+    """
+    return {
+        # GitHub analyzer mutating methods
+        "post_pr_comment",
+        "submit_pr_review",
+        # Common GitHub MCP server write tools
+        "create_issue_comment",
+        "create_pull_request_review",
+        "update_pull_request",
+        "merge_pull_request",
+        "create_issue",
+        "update_issue",
+        "add_labels",
+        "remove_labels",
+        "create_branch",
+        "delete_branch",
+        # Notification tools
+        "send_slack_message",
+    }
+
+
 def validate(config):
     """Validate GitHub-specific configuration."""
     import os
