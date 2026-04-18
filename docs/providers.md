@@ -18,7 +18,7 @@ cicaddy-action supports multiple AI providers. This guide covers provider-specif
 - uses: redhat-community-ai-tools/cicaddy-action@main
   with:
     ai_provider: openai
-    ai_model: gpt-4.1-mini
+    ai_model: gpt-4.5
     ai_api_key: ${{ secrets.OPENAI_API_KEY }}
 ```
 
