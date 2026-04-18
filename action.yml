@@ -53,6 +53,14 @@ inputs:
     description: 'Minimum semver bump to analyze for dep review: minor or major'
     required: false
     default: 'minor'
+  delegation_mode:
+    description: 'Enable AI-powered sub-agent delegation: none (default) or auto'
+    required: false
+    default: 'none'
+  max_sub_agents:
+    description: 'Maximum concurrent sub-agents for delegation (1-10, default: 3)'
+    required: false
+    default: '3'
   github_token:
     description: 'GitHub token for API access'
     required: false

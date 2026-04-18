@@ -65,7 +65,7 @@ cicaddy-action/
 
 ### Dependencies
 
-- Depends on `cicaddy>=0.7.0` (core library) and `PyGithub>=2.1.0`
+- Depends on `cicaddy>=0.8.0` (core library) and `PyGithub>=2.1.0`
 - Follows the same agent/factory patterns as the core library
 - Extends `BaseAIAgent` from cicaddy
 
@@ -75,6 +75,37 @@ cicaddy-action/
 |------|-------|---------|
 | `github_pr` | `GitHubPRAgent` | `GITHUB_EVENT_NAME=pull_request` + `GITHUB_PR_NUMBER` |
 | `github_task` | `GitHubTaskAgent` | `GITHUB_EVENT_NAME` present but not a PR |
+
+## Sub-Agent Delegation (v0.5.0+)
+
+Requires cicaddy>=0.8.0. When `DELEGATION_MODE=auto`, the parent agent's `analyze()` method delegates to specialized sub-agents:
+
+1. **Triage** — AI analyzes the PR diff/context and selects reviewers
+2. **Parallel Execution** — Selected sub-agents run concurrently with focused prompts
+3. **Aggregation** — Results merged into a single PR comment with per-agent sections
+
+### Plugin Hooks
+
+The cicaddy-github plugin provides:
+
+- `cicaddy.delegation_blocked_tools` entry point — blocks write and side-effect operations (posting comments, submitting reviews, merging PRs, sending Slack notifications, etc.) so sub-agents only perform analysis
+- Delegation metadata in PR comments — shows which agents ran, success/failure counts, and execution time in a collapsible details block
+
+### Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DELEGATION_MODE` | `none` | `none` or `auto` |
+| `MAX_SUB_AGENTS` | `3` | Max concurrent sub-agents (1-10) |
+| `SUB_AGENT_MAX_ITERS` | `10` | Iterations per sub-agent (1-15) |
+| `DELEGATION_AGENTS_DIR` | `.agents/delegation` | Custom agent YAML directory (relative to repo root) |
+| `DELEGATION_AGENTS` | (empty) | JSON config for inline custom sub-agent definitions |
+| `TRIAGE_PROMPT` | (empty) | Custom triage instructions |
+
+Action inputs: `delegation_mode`, `max_sub_agents`
+CLI flags: `--delegation-mode auto --max-sub-agents 2`
+
+See cicaddy's [sub-agent delegation docs](https://github.com/waynesun09/cicaddy/blob/main/docs/sub-agent-delegation.md) for built-in agents, custom YAML format, and tool filtering.
 
 ## Action Inputs
 
@@ -94,6 +125,8 @@ All inputs use **underscores** (not hyphens) for Docker container compatibility:
 | `mcp_servers_config` | No | JSON array of MCP server configs |
 | `slack_webhook_url` | No | Slack webhook URL |
 | `report_template` | No | Custom HTML report template path |
+| `delegation_mode` | No | `none` (default) or `auto` for sub-agent delegation |
+| `max_sub_agents` | No | Max concurrent sub-agents, 1-10 (default: `3`) |
 
 *Not required if provider-specific key is set via `env:`.
 
