@@ -173,6 +173,10 @@ class GitHubPRAgent(BaseAIAgent):
         self.pr_number = settings.github_pr_number if settings else os.getenv("GITHUB_PR_NUMBER")
         self.leak_detector = LeakDetector()
 
+    def _get_agent_type(self) -> str:
+        """PR review agents use the 'review' delegation registry."""
+        return "review"
+
     async def _setup_local_tools(self):
         """Setup local tools for PR review."""
         await super()._setup_local_tools()
@@ -429,6 +433,10 @@ class GitHubGoDepReviewAgent(BaseAIAgent):
         super().__init__(settings)
         self.pr_number = getattr(settings, "github_pr_number", None) if settings else None
         self.leak_detector = LeakDetector()
+
+    def _get_agent_type(self) -> str:
+        """Dependency review agents use the 'review' delegation registry."""
+        return "review"
 
     async def _setup_local_tools(self):
         """Setup local tools including git and dependency review tools."""

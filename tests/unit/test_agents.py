@@ -1,10 +1,34 @@
-"""Tests for dedent_code_blocks, strip_markdown_wrapper, and extract_review_verdict."""
+"""Tests for agent classes and text formatting helpers."""
+
+from unittest.mock import patch
 
 from cicaddy_github.github_integration.agents import (
+    GitHubGoDepReviewAgent,
+    GitHubPRAgent,
+    GitHubTaskAgent,
     dedent_code_blocks,
     extract_review_verdict,
     strip_markdown_wrapper,
 )
+
+
+class TestAgentType:
+    """Test _get_agent_type() returns correct delegation registry type."""
+
+    @patch("cicaddy_github.github_integration.agents.GitHubAnalyzer")
+    def test_pr_agent_returns_review_type(self, _mock_analyzer):
+        agent = GitHubPRAgent.__new__(GitHubPRAgent)
+        assert agent._get_agent_type() == "review"
+
+    @patch("cicaddy_github.github_integration.agents.GitHubAnalyzer")
+    def test_go_dep_review_agent_returns_review_type(self, _mock_analyzer):
+        agent = GitHubGoDepReviewAgent.__new__(GitHubGoDepReviewAgent)
+        assert agent._get_agent_type() == "review"
+
+    @patch("cicaddy_github.github_integration.agents.GitHubAnalyzer")
+    def test_task_agent_returns_task_type(self, _mock_analyzer):
+        agent = GitHubTaskAgent.__new__(GitHubTaskAgent)
+        assert agent._get_agent_type() == "task"
 
 
 class TestDedentCodeBlocks:
