@@ -46,7 +46,11 @@ jobs:
           ai_api_key: ${{ secrets.AI_API_KEY }}
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
+        env:
+          DELEGATION_MODE: auto
 ```
+
+> **Sub-Agent Delegation**: When `DELEGATION_MODE` is set to `auto`, the agent uses AI-powered triage to analyze the PR diff and spawns specialized sub-agents in parallel (e.g., code quality, security, performance). Each sub-agent runs with a focused scope and reduced token budget, and their results are aggregated into a single unified review. This produces deeper, more structured reviews compared to single-agent mode. Set `DELEGATION_MODE` to `none` to use a single agent instead. See [docs/delegation.md](docs/delegation.md) for details.
 
 ### Changelog Report on Release
 
@@ -119,55 +123,7 @@ agent instead of the default PR code review agent. The `run_govulncheck`
 input enables vulnerability reachability analysis (requires Go and
 govulncheck installed in the runner).
 
-### Claude via Vertex AI (GCP)
-
-Uses Google Cloud Workload Identity Federation for keyless authentication — no
-service account JSON keys to manage. This is the recommended approach for GCP.
-
-```yaml
-name: PR Review (Vertex AI)
-
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-permissions:
-  contents: read
-  id-token: write       # Required for Workload Identity Federation
-  pull-requests: write
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-repo'
-          service_account: 'cicaddy@my-project.iam.gserviceaccount.com'
-
-      - uses: redhat-community-ai-tools/cicaddy-action@main
-        with:
-          ai_provider: anthropic-vertex
-          ai_model: claude-sonnet-4-6
-          vertex_project_id: my-project
-          task_file: tasks/pr_review.yml
-          post_pr_comment: 'true'
-```
-
-> **Security**: Prefer Workload Identity Federation (shown above) over service
-> account keys. If you must use a key, store the JSON as a GitHub secret and pass
-> it via `google-github-actions/auth` with `credentials_json`:
-> ```yaml
-> - uses: google-github-actions/auth@v3
->   with:
->     credentials_json: ${{ secrets.GCP_SA_KEY }}
-> ```
-> The auth action sets `GOOGLE_APPLICATION_CREDENTIALS` automatically — never
-> write keys to disk manually or echo them in scripts.
+See [docs/providers.md](docs/providers.md) for provider-specific configuration including Claude via Vertex AI (GCP), OpenAI, and Anthropic API setup.
 
 ### Delegated PR Review
 
@@ -325,6 +281,9 @@ uv run cicaddy validate --env-file .env.my-review
 | `GITHUB_PR_NUMBER` | Yes | PR number to review |
 | `POST_PR_COMMENT` | No | Post results as PR comment (`true`/`false`) |
 | `AGENT_TASKS` | No | Agent task type (e.g. `go_dep_review` for Go dependency analysis) |
+| `DELEGATION_MODE` | No | `auto` for AI-powered sub-agent delegation, `none` for single-agent (default: `none`) |
+| `MAX_SUB_AGENTS` | No | Max concurrent sub-agents for delegation, 1-10 (default: `3`) |
+| `SUB_AGENT_MAX_ITERS` | No | Max iterations per sub-agent, 1-15 (default: `5`) |
 | `AI_TASK_FILE` | No | Path to DSPy YAML task file for custom workflows |
 | `RUN_GOVULNCHECK` | No | Run govulncheck for reachability analysis (`true`/`false`) |
 | `DELEGATION_MODE` | No | `none` or `auto` for sub-agent delegation |
