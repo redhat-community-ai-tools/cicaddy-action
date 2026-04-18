@@ -5,6 +5,7 @@ GitHub Action that wraps [cicaddy](https://github.com/waynesun09/cicaddy) for ru
 ## Features
 
 - **AI-powered PR reviews** with optional Context7 MCP for up-to-date library documentation
+- **Sub-agent delegation** for parallel specialized reviews (security, architecture, performance, etc.)
 - **Go dependency impact analysis** for Go dependency update PRs with risk classification
 - **Changelog report generation** from git tag diffs and release notes
 - **Multiple AI providers**: Gemini, OpenAI, Claude, Claude via Vertex AI
@@ -168,6 +169,41 @@ jobs:
 > The auth action sets `GOOGLE_APPLICATION_CREDENTIALS` automatically — never
 > write keys to disk manually or echo them in scripts.
 
+### Delegated PR Review
+
+Enable sub-agent delegation to split PR reviews across specialized AI reviewers that run in parallel:
+
+```yaml
+name: Delegated PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: redhat-community-ai-tools/cicaddy-action@main
+        with:
+          ai_provider: gemini
+          ai_model: gemini-3-flash-preview
+          ai_api_key: ${{ secrets.AI_API_KEY }}
+          task_file: tasks/pr_review.yml
+          post_pr_comment: 'true'
+          delegation_mode: 'auto'
+          max_sub_agents: '3'
+```
+
+The triage AI analyzes the diff and activates relevant specialist reviewers (security, architecture, performance, etc.). Results are aggregated into a single PR comment with per-agent sections. See [docs/delegation.md](docs/delegation.md) for full configuration and custom agent setup.
+
 ## Inputs
 
 | Input | Required | Description |
@@ -186,6 +222,8 @@ jobs:
 | `submit_review` | No | Submit formal PR review with APPROVE/REQUEST_CHANGES (default: `false`) |
 | `run_govulncheck` | No | Run govulncheck for vulnerability reachability analysis (default: `false`) |
 | `dep_review_severity_threshold` | No | Minimum semver bump to analyze: `minor` or `major` (default: `minor`) |
+| `delegation_mode` | No | Enable AI-powered sub-agent delegation: `none` (default) or `auto` |
+| `max_sub_agents` | No | Maximum concurrent sub-agents, 1-10 (default: `3`) |
 | `github_token` | No | GitHub token (default: `${{ github.token }}`) |
 
 ## Outputs
@@ -289,6 +327,8 @@ uv run cicaddy validate --env-file .env.my-review
 | `AGENT_TASKS` | No | Agent task type (e.g. `go_dep_review` for Go dependency analysis) |
 | `AI_TASK_FILE` | No | Path to DSPy YAML task file for custom workflows |
 | `RUN_GOVULNCHECK` | No | Run govulncheck for reachability analysis (`true`/`false`) |
+| `DELEGATION_MODE` | No | `none` or `auto` for sub-agent delegation |
+| `MAX_SUB_AGENTS` | No | Maximum concurrent sub-agents (default: `3`) |
 | `GIT_DIFF_CONTEXT_LINES` | No | Number of context lines in diffs (default: `10`) |
 | `ENABLE_LOCAL_TOOLS` | No | Enable local git tools (`true`/`false`) |
 | `LOCAL_TOOLS_WORKING_DIR` | No | Working directory for local tools |

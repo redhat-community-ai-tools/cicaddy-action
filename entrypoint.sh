@@ -83,6 +83,8 @@ export POST_PR_COMMENT="${INPUT_POST_PR_COMMENT:-false}"
 export SUBMIT_REVIEW="${INPUT_SUBMIT_REVIEW:-false}"
 export RUN_GOVULNCHECK="${INPUT_RUN_GOVULNCHECK:-false}"
 export DEP_REVIEW_SEVERITY_THRESHOLD="${INPUT_DEP_REVIEW_SEVERITY_THRESHOLD:-minor}"
+export DELEGATION_MODE="${INPUT_DELEGATION_MODE:-none}"
+export MAX_SUB_AGENTS="${INPUT_MAX_SUB_AGENTS:-3}"
 
 # Extract PR number from GITHUB_REF (e.g. refs/pull/123/merge -> 123)
 if [[ "${GITHUB_REF}" =~ ^refs/pull/([0-9]+)/ ]]; then

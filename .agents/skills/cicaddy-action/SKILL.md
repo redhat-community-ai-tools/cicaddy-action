@@ -306,6 +306,125 @@ JSON array. Each server object has:
 - The `github_pr` agent updates its PR comment in-place on re-runs
 - Use `gh auth token` to generate a GitHub token quickly
 
+## Sub-Agent Delegation
+
+cicaddy-action v0.5.0+ supports AI-powered sub-agent delegation via cicaddy>=0.8.0. When enabled, the framework uses a triage AI to select specialized sub-agents that run in parallel.
+
+### How It Works
+
+1. **Triage** — AI analyzes the PR diff/context and selects reviewers (security, architecture, performance, etc.)
+2. **Parallel Execution** — Selected sub-agents run concurrently with focused prompts and filtered tools
+3. **Aggregation** — Results merged into a single PR comment with per-agent sections
+
+### Configuration
+
+**Action Inputs:**
+- `delegation_mode`: `none` (default) or `auto`
+- `max_sub_agents`: 1-10 (default: `3`)
+
+**Environment Variables:**
+- `DELEGATION_MODE`: `none` or `auto`
+- `MAX_SUB_AGENTS`: 1-10 (default: `3`)
+- `SUB_AGENT_MAX_ITERS`: 1-15 (default: `5`)
+- `DELEGATION_AGENTS_DIR`: `.agents/delegation` (custom agent YAML directory)
+- `DELEGATION_AGENTS`: JSON array for inline custom agents
+- `TRIAGE_PROMPT`: Custom triage instructions
+
+**CLI Flags:**
+```bash
+cicaddy run --env-file .env --delegation-mode auto --max-sub-agents 2
+```
+
+### Built-in Review Sub-Agents
+
+For `github_pr` agent type:
+- `security-reviewer` — Auth, crypto, secrets, injection
+- `architecture-reviewer` — Design patterns, module boundaries
+- `api-reviewer` — Endpoints, schemas, versioning
+- `database-reviewer` — Queries, migrations, indexes
+- `ui-reviewer` — Frontend components, accessibility
+- `devops-reviewer` — CI/CD, Docker, deployment
+- `performance-reviewer` — Algorithms, caching, concurrency
+- `general-reviewer` — Catch-all
+
+### Plugin Hooks
+
+The `cicaddy.delegation_blocked_tools` entry point blocks GitHub write operations in sub-agents:
+- Posting PR comments
+- Submitting PR reviews
+- Merging PRs
+- Managing labels
+- Editing issues
+
+Sub-agents only perform analysis; they cannot modify GitHub state.
+
+### PR Comment Output
+
+When delegation is active, PR comments include a collapsible metadata block:
+```markdown
+<details>
+<summary>🤖 Delegation Info</summary>
+
+- **Agents Run**: 3 (security-reviewer, architecture-reviewer, api-reviewer)
+- **Success**: 3/3
+- **Execution Time**: 12.4s
+- **Triage Rationale**: PR modifies authentication middleware, API routes, and database schema
+</details>
+```
+
+### Custom Sub-Agents
+
+Define custom agents in `.agents/delegation/review/`:
+
+```yaml
+# .agents/delegation/review/compliance-reviewer.yaml
+name: compliance-reviewer
+agent_type: review
+persona: compliance engineer
+description: Reviews regulatory compliance impact
+categories: [security, configuration]
+constraints:
+  - Focus on SOC2, GDPR, HIPAA compliance
+  - Flag PII handling changes
+priority: 15
+```
+
+Or inline via `DELEGATION_AGENTS` JSON env var.
+
+### GitHub Actions Example
+
+```yaml
+- uses: redhat-community-ai-tools/cicaddy-action@main
+  with:
+    ai_provider: gemini
+    ai_model: gemini-3-flash-preview
+    ai_api_key: ${{ secrets.AI_API_KEY }}
+    task_file: tasks/pr_review.yml
+    post_pr_comment: 'true'
+    delegation_mode: 'auto'
+    max_sub_agents: '3'
+```
+
+### Local Development Example
+
+```bash
+# .env.my-review
+AI_PROVIDER=gemini
+AI_MODEL=gemini-3-flash-preview
+GEMINI_API_KEY=<key>
+GITHUB_TOKEN=<token>
+GITHUB_REPOSITORY=owner/repo
+GITHUB_PR_NUMBER=42
+POST_PR_COMMENT=true
+DELEGATION_MODE=auto
+MAX_SUB_AGENTS=3
+
+# Run:
+uv run cicaddy run --env-file .env.my-review
+```
+
+See [docs/delegation.md](../../../docs/delegation.md) for the full specification.
+
 ## Code Style
 
 - Python 3.11+ with type hints
