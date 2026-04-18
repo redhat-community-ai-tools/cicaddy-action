@@ -245,6 +245,7 @@ uv run cicaddy validate --env-file .env.my-review
 | `AGENT_TASKS` | No | Agent task type (e.g. `go_dep_review` for Go dependency analysis) |
 | `DELEGATION_MODE` | No | `auto` for AI-powered sub-agent delegation, `none` for single-agent (default: `none`) |
 | `MAX_SUB_AGENTS` | No | Max concurrent sub-agents for delegation, 1-10 (default: `3`) |
+| `SUB_AGENT_MAX_ITERS` | No | Max iterations per sub-agent, 1-15 (default: `5`) |
 | `AI_TASK_FILE` | No | Path to DSPy YAML task file for custom workflows |
 | `RUN_GOVULNCHECK` | No | Run govulncheck for reachability analysis (`true`/`false`) |
 | `GIT_DIFF_CONTEXT_LINES` | No | Number of context lines in diffs (default: `10`) |
