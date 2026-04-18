@@ -93,6 +93,24 @@ class TestFormatPrCommentDelegation:
         assert "Delegation details" not in result
         assert "<details>" not in result
 
+    def test_delegation_metadata_handles_missing_execution_time(self):
+        """Missing total_execution_time renders as 0.0s."""
+        agent = self._make_agent()
+        result = agent._format_pr_comment(
+            {
+                "ai_analysis": "Review.",
+                "delegation_mode": "auto",
+                "delegation_plan": {
+                    "agents": [{"name": "general-reviewer", "rationale": ""}],
+                },
+                "agents_succeeded": 1,
+                "agents_failed": 0,
+                "total_execution_time": None,
+            }
+        )
+        assert "0.0s" in result
+        assert "Delegation details" in result
+
     def test_no_delegation_metadata_without_agents(self):
         """No delegation block when delegation_plan has no agents."""
         agent = self._make_agent()

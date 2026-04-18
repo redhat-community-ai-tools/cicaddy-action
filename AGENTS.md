@@ -125,6 +125,8 @@ All inputs use **underscores** (not hyphens) for Docker container compatibility:
 | `mcp_servers_config` | No | JSON array of MCP server configs |
 | `slack_webhook_url` | No | Slack webhook URL |
 | `report_template` | No | Custom HTML report template path |
+| `delegation_mode` | No | `none` (default) or `auto` for sub-agent delegation |
+| `max_sub_agents` | No | Max concurrent sub-agents, 1-10 (default: `3`) |
 
 *Not required if provider-specific key is set via `env:`.
 
