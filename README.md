@@ -45,7 +45,11 @@ jobs:
           ai_api_key: ${{ secrets.AI_API_KEY }}
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
+        env:
+          DELEGATION_MODE: auto
 ```
+
+> **Sub-Agent Delegation**: When `DELEGATION_MODE` is set to `auto`, the agent uses AI-powered triage to analyze the PR diff and spawns specialized sub-agents in parallel (e.g., code quality, security, performance). Each sub-agent runs with a focused scope and reduced token budget, and their results are aggregated into a single unified review. This produces deeper, more structured reviews compared to single-agent mode. Set `DELEGATION_MODE` to `none` to use a single agent instead. See [docs/delegation.md](docs/delegation.md) for details.
 
 ### Changelog Report on Release
 
@@ -287,6 +291,8 @@ uv run cicaddy validate --env-file .env.my-review
 | `GITHUB_PR_NUMBER` | Yes | PR number to review |
 | `POST_PR_COMMENT` | No | Post results as PR comment (`true`/`false`) |
 | `AGENT_TASKS` | No | Agent task type (e.g. `go_dep_review` for Go dependency analysis) |
+| `DELEGATION_MODE` | No | `auto` for AI-powered sub-agent delegation, `none` for single-agent (default: `none`) |
+| `MAX_SUB_AGENTS` | No | Max concurrent sub-agents for delegation, 1-10 (default: `3`) |
 | `AI_TASK_FILE` | No | Path to DSPy YAML task file for custom workflows |
 | `RUN_GOVULNCHECK` | No | Run govulncheck for reachability analysis (`true`/`false`) |
 | `GIT_DIFF_CONTEXT_LINES` | No | Number of context lines in diffs (default: `10`) |
