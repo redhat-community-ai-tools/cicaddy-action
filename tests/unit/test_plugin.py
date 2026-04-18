@@ -97,6 +97,72 @@ class TestGetEnvVars:
             assert var in env_vars
 
 
+class TestGetDelegationBlockedTools:
+    """Test delegation blocked tools registration."""
+
+    def test_returns_set(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        result = get_delegation_blocked_tools()
+        assert isinstance(result, set)
+
+    def test_blocks_pr_comment_tools(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        blocked = get_delegation_blocked_tools()
+        assert "post_pr_comment" in blocked
+        assert "submit_pr_review" in blocked
+        assert "create_issue_comment" in blocked
+        assert "create_pull_request_review" in blocked
+
+    def test_blocks_merge_and_update(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        blocked = get_delegation_blocked_tools()
+        assert "update_pull_request" in blocked
+        assert "merge_pull_request" in blocked
+
+    def test_blocks_issue_mutations(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        blocked = get_delegation_blocked_tools()
+        assert "create_issue" in blocked
+        assert "update_issue" in blocked
+        assert "close_issue" in blocked
+
+    def test_blocks_branch_operations(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        blocked = get_delegation_blocked_tools()
+        assert "create_branch" in blocked
+        assert "delete_branch" in blocked
+
+    def test_blocks_pipeline_and_tag_operations(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        blocked = get_delegation_blocked_tools()
+        assert "create_workflow_dispatch" in blocked
+        assert "cancel_workflow_run" in blocked
+        assert "create_tag" in blocked
+        assert "delete_tag" in blocked
+        assert "create_release" in blocked
+        assert "delete_release" in blocked
+
+    def test_blocks_notification_tools(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        blocked = get_delegation_blocked_tools()
+        assert "send_slack_message" in blocked
+
+    def test_does_not_block_read_operations(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        blocked = get_delegation_blocked_tools()
+        assert "read_file" not in blocked
+        assert "list_directory" not in blocked
+        assert "get_pull_request" not in blocked
+
+
 class TestValidate:
     """Test configuration validation."""
 

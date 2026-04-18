@@ -88,10 +88,18 @@ def get_delegation_blocked_tools() -> set[str]:
         "merge_pull_request",
         "create_issue",
         "update_issue",
+        "close_issue",
         "add_labels",
         "remove_labels",
         "create_branch",
         "delete_branch",
+        # Pipeline, tag, and release operations
+        "create_workflow_dispatch",
+        "cancel_workflow_run",
+        "create_tag",
+        "delete_tag",
+        "create_release",
+        "delete_release",
         # Notification tools
         "send_slack_message",
     }
