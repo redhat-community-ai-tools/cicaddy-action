@@ -100,6 +100,9 @@ def get_delegation_blocked_tools() -> set[str]:
         "delete_tag",
         "create_release",
         "delete_release",
+        # Comment mutation tools
+        "update_issue_comment",
+        "delete_issue_comment",
         # Notification tools
         "send_slack_message",
     }

@@ -148,6 +148,13 @@ class TestGetDelegationBlockedTools:
         assert "create_release" in blocked
         assert "delete_release" in blocked
 
+    def test_blocks_comment_mutation_tools(self):
+        from cicaddy_github.plugin import get_delegation_blocked_tools
+
+        blocked = get_delegation_blocked_tools()
+        assert "update_issue_comment" in blocked
+        assert "delete_issue_comment" in blocked
+
     def test_blocks_notification_tools(self):
         from cicaddy_github.plugin import get_delegation_blocked_tools
 
