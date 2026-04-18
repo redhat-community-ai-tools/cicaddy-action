@@ -86,6 +86,12 @@ export DEP_REVIEW_SEVERITY_THRESHOLD="${INPUT_DEP_REVIEW_SEVERITY_THRESHOLD:-min
 export DELEGATION_MODE="${INPUT_DELEGATION_MODE:-none}"
 export MAX_SUB_AGENTS="${INPUT_MAX_SUB_AGENTS:-3}"
 
+# Validate MAX_SUB_AGENTS is a number
+if [[ -n "${MAX_SUB_AGENTS}" ]] && ! [[ "${MAX_SUB_AGENTS}" =~ ^[0-9]+$ ]]; then
+  echo "ERROR: max_sub_agents must be a number (1-10), got: '${MAX_SUB_AGENTS}'"
+  exit 3
+fi
+
 # Extract PR number from GITHUB_REF (e.g. refs/pull/123/merge -> 123)
 if [[ "${GITHUB_REF}" =~ ^refs/pull/([0-9]+)/ ]]; then
   export GITHUB_PR_NUMBER="${BASH_REMATCH[1]}"

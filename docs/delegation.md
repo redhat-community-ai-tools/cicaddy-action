@@ -45,7 +45,7 @@ uv run cicaddy run --env-file .env.my-review --delegation-mode auto --max-sub-ag
 |-----------------|---------|-------------|
 | `DELEGATION_MODE` / `delegation_mode` | `none` | `none` (single-agent) or `auto` (AI-powered delegation) |
 | `MAX_SUB_AGENTS` / `max_sub_agents` | `3` | Maximum concurrent sub-agents (1-10) |
-| `SUB_AGENT_MAX_ITERS` | `5` | Max inference iterations per sub-agent (1-15, env var only) |
+| `SUB_AGENT_MAX_ITERS` | `10` | Max inference iterations per sub-agent (1-15, env var only) |
 | `DELEGATION_AGENTS_DIR` | `.agents/delegation` | Directory for user-defined sub-agent YAML files (env var only) |
 | `DELEGATION_AGENTS` | (empty) | JSON config for inline custom sub-agent definitions (env var only) |
 | `TRIAGE_PROMPT` | (empty) | Optional custom instructions for the triage AI (env var only) |
@@ -153,5 +153,15 @@ If any agents fail, the summary shows: `2 agent(s) succeeded, 1 failed (12.4s)`.
 ## DSPy Task Files + Delegation
 
 When using `task_file` with `delegation_mode: auto`, the task definition is provided to the triage agent as context for task-aware sub-agent selection. The task's `forbidden_tools` cascade to all sub-agents.
+
+## Cost Considerations
+
+Delegation multiplies AI inference calls. With defaults (`MAX_SUB_AGENTS=3`, `SUB_AGENT_MAX_ITERS=10`), a single PR review can use up to 1 (triage) + 3×10 (sub-agents) + 1 (aggregation) = **32 AI calls** versus 1-15 for single-agent mode. Tune `MAX_SUB_AGENTS` and `SUB_AGENT_MAX_ITERS` based on your AI provider tier and rate limits.
+
+## Troubleshooting
+
+- **Disable delegation**: Set `DELEGATION_MODE` to `none` — no redeployment needed
+- **Sub-agent failures**: If sub-agents fail, the parent agent still posts a comment with results from successful agents. Failed agent count is shown in the delegation details block
+- **Rate limits**: With `MAX_SUB_AGENTS` concurrent API calls, shared API keys may hit RPM limits. Reduce `MAX_SUB_AGENTS` if you see rate-limit errors
 
 See cicaddy's [sub-agent delegation docs](https://github.com/waynesun09/cicaddy/blob/main/docs/sub-agent-delegation.md) for the full specification.

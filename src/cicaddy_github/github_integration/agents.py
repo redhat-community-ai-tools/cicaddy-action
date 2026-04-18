@@ -404,9 +404,8 @@ Please provide your comprehensive analysis in markdown format.
                     f"Agents: {', '.join(agent_names)}\n\n"
                 )
                 for agent in agents:
-                    comment += (
-                        f"- **{agent.get('name', 'unknown')}**: {agent.get('rationale', '')}\n"
-                    )
+                    rationale = self.leak_detector.sanitize_text(agent.get("rationale", ""))
+                    comment += f"- **{agent.get('name', 'unknown')}**: {rationale}\n"
                 comment += "\n</details>\n"
 
         comment += (

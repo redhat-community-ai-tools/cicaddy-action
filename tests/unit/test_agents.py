@@ -1,6 +1,6 @@
 """Tests for agent classes and text formatting helpers."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from cicaddy_github.github_integration.agents import (
     GitHubGoDepReviewAgent,
@@ -37,6 +37,8 @@ class TestFormatPrCommentDelegation:
     def _make_agent(self):
         agent = GitHubPRAgent.__new__(GitHubPRAgent)
         agent.pr_number = "42"
+        agent.leak_detector = MagicMock()
+        agent.leak_detector.sanitize_text = lambda x: x
         return agent
 
     def test_delegation_metadata_included(self):

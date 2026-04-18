@@ -329,6 +329,10 @@ uv run cicaddy validate --env-file .env.my-review
 | `RUN_GOVULNCHECK` | No | Run govulncheck for reachability analysis (`true`/`false`) |
 | `DELEGATION_MODE` | No | `none` or `auto` for sub-agent delegation |
 | `MAX_SUB_AGENTS` | No | Maximum concurrent sub-agents (default: `3`) |
+| `SUB_AGENT_MAX_ITERS` | No | Max iterations per sub-agent (default: `10`) |
+| `DELEGATION_AGENTS_DIR` | No | Custom agent YAML directory (default: `.agents/delegation`) |
+| `DELEGATION_AGENTS` | No | JSON config for inline custom sub-agents |
+| `TRIAGE_PROMPT` | No | Custom triage instructions |
 | `GIT_DIFF_CONTEXT_LINES` | No | Number of context lines in diffs (default: `10`) |
 | `ENABLE_LOCAL_TOOLS` | No | Enable local git tools (`true`/`false`) |
 | `LOCAL_TOOLS_WORKING_DIR` | No | Working directory for local tools |

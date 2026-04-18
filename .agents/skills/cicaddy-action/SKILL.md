@@ -325,7 +325,7 @@ cicaddy-action v0.5.0+ supports AI-powered sub-agent delegation via cicaddy>=0.8
 **Environment Variables:**
 - `DELEGATION_MODE`: `none` or `auto`
 - `MAX_SUB_AGENTS`: 1-10 (default: `3`)
-- `SUB_AGENT_MAX_ITERS`: 1-15 (default: `5`)
+- `SUB_AGENT_MAX_ITERS`: 1-15 (default: `10`)
 - `DELEGATION_AGENTS_DIR`: `.agents/delegation` (custom agent YAML directory)
 - `DELEGATION_AGENTS`: JSON array for inline custom agents
 - `TRIAGE_PROMPT`: Custom triage instructions
