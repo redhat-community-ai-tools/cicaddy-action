@@ -78,4 +78,4 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
   # After first GHCR publish, switch to pre-built image for faster startup:
-  # image: 'docker://ghcr.io/redhat-community-ai-tools/cicaddy-action:0.1.0'
+  # image: 'docker://ghcr.io/redhat-community-ai-tools/cicaddy-action:0.6.0'
