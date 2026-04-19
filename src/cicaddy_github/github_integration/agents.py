@@ -186,7 +186,7 @@ class GitHubPRAgent(BaseAIAgent):
             BaseReviewAgent as _CoreReviewAgent,
         )
 
-        return _CoreReviewAgent._get_agent_type(self)
+        return _CoreReviewAgent._get_agent_type(self)  # ty: ignore[invalid-argument-type]
 
     def _get_delegation_context(self, context: dict[str, Any]) -> dict[str, Any]:
         """Shape context for review delegation triage."""
@@ -194,7 +194,7 @@ class GitHubPRAgent(BaseAIAgent):
             BaseReviewAgent as _CoreReviewAgent,
         )
 
-        return _CoreReviewAgent._get_delegation_context(self, context)
+        return _CoreReviewAgent._get_delegation_context(self, context)  # ty: ignore[invalid-argument-type]
 
     def _post_process_plan(self, plan: Any, registry: dict[str, Any]) -> Any:
         """Ensure general-reviewer is always included in review plans."""
@@ -202,7 +202,7 @@ class GitHubPRAgent(BaseAIAgent):
             BaseReviewAgent as _CoreReviewAgent,
         )
 
-        return _CoreReviewAgent._post_process_plan(self, plan, registry)
+        return _CoreReviewAgent._post_process_plan(self, plan, registry)  # ty: ignore[invalid-argument-type, unresolved-attribute]
 
     async def _setup_local_tools(self):
         """Setup local tools for PR review."""
@@ -469,7 +469,7 @@ class GitHubGoDepReviewAgent(BaseAIAgent):
             BaseReviewAgent as _CoreReviewAgent,
         )
 
-        return _CoreReviewAgent._get_agent_type(self)
+        return _CoreReviewAgent._get_agent_type(self)  # ty: ignore[invalid-argument-type]
 
     def _get_delegation_context(self, context: dict[str, Any]) -> dict[str, Any]:
         """Shape context for review delegation triage."""
@@ -477,7 +477,7 @@ class GitHubGoDepReviewAgent(BaseAIAgent):
             BaseReviewAgent as _CoreReviewAgent,
         )
 
-        return _CoreReviewAgent._get_delegation_context(self, context)
+        return _CoreReviewAgent._get_delegation_context(self, context)  # ty: ignore[invalid-argument-type]
 
     def _post_process_plan(self, plan: Any, registry: dict[str, Any]) -> Any:
         """Ensure general-reviewer is always included in review plans."""
@@ -485,7 +485,7 @@ class GitHubGoDepReviewAgent(BaseAIAgent):
             BaseReviewAgent as _CoreReviewAgent,
         )
 
-        return _CoreReviewAgent._post_process_plan(self, plan, registry)
+        return _CoreReviewAgent._post_process_plan(self, plan, registry)  # ty: ignore[invalid-argument-type, unresolved-attribute]
 
     async def _setup_local_tools(self):
         """Setup local tools including git and dependency review tools."""
