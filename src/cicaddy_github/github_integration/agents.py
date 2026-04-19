@@ -173,9 +173,36 @@ class GitHubPRAgent(BaseAIAgent):
         self.pr_number = settings.github_pr_number if settings else os.getenv("GITHUB_PR_NUMBER")
         self.leak_detector = LeakDetector()
 
+    # Delegation hooks — forward to cicaddy core's BaseReviewAgent.
+    #
+    # This class inherits from BaseAIAgent (not BaseReviewAgent) because it
+    # handles GitHub platform integration inline. We forward review-specific
+    # delegation hooks as explicit unbound method calls to keep all delegation
+    # logic in cicaddy core.
+
     def _get_agent_type(self) -> str:
         """PR review agents use the 'review' delegation registry."""
-        return "review"
+        from cicaddy.agent.base_review_agent import (
+            BaseReviewAgent as _CoreReviewAgent,
+        )
+
+        return _CoreReviewAgent._get_agent_type(self)
+
+    def _get_delegation_context(self, context: dict[str, Any]) -> dict[str, Any]:
+        """Shape context for review delegation triage."""
+        from cicaddy.agent.base_review_agent import (
+            BaseReviewAgent as _CoreReviewAgent,
+        )
+
+        return _CoreReviewAgent._get_delegation_context(self, context)
+
+    def _post_process_plan(self, plan: Any, registry: dict[str, Any]) -> Any:
+        """Ensure general-reviewer is always included in review plans."""
+        from cicaddy.agent.base_review_agent import (
+            BaseReviewAgent as _CoreReviewAgent,
+        )
+
+        return _CoreReviewAgent._post_process_plan(self, plan, registry)
 
     async def _setup_local_tools(self):
         """Setup local tools for PR review."""
@@ -433,9 +460,32 @@ class GitHubGoDepReviewAgent(BaseAIAgent):
         self.pr_number = getattr(settings, "github_pr_number", None) if settings else None
         self.leak_detector = LeakDetector()
 
+    # Delegation hooks — forward to cicaddy core's BaseReviewAgent.
+    # See GitHubPRAgent docstring for rationale.
+
     def _get_agent_type(self) -> str:
         """Dependency review agents use the 'review' delegation registry."""
-        return "review"
+        from cicaddy.agent.base_review_agent import (
+            BaseReviewAgent as _CoreReviewAgent,
+        )
+
+        return _CoreReviewAgent._get_agent_type(self)
+
+    def _get_delegation_context(self, context: dict[str, Any]) -> dict[str, Any]:
+        """Shape context for review delegation triage."""
+        from cicaddy.agent.base_review_agent import (
+            BaseReviewAgent as _CoreReviewAgent,
+        )
+
+        return _CoreReviewAgent._get_delegation_context(self, context)
+
+    def _post_process_plan(self, plan: Any, registry: dict[str, Any]) -> Any:
+        """Ensure general-reviewer is always included in review plans."""
+        from cicaddy.agent.base_review_agent import (
+            BaseReviewAgent as _CoreReviewAgent,
+        )
+
+        return _CoreReviewAgent._post_process_plan(self, plan, registry)
 
     async def _setup_local_tools(self):
         """Setup local tools including git and dependency review tools."""
