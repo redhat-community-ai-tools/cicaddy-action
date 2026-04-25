@@ -116,7 +116,7 @@ All inputs use **underscores** (not hyphens) for Docker container compatibility:
 | `ai_provider` | Yes | `gemini`, `openai`, `claude`, `anthropic-vertex`, `gemini-vertex` |
 | `ai_model` | Yes | Model identifier |
 | `ai_api_key` | No* | AI provider API key (not needed for `anthropic-vertex` or `gemini-vertex`) |
-| `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
+| `vertex_project_id` | No | GCP project ID for Vertex AI Claude (falls back to `google_cloud_project`) |
 | `cloud_ml_region` | No | **Deprecated**: use `google_cloud_location` |
 | `google_cloud_project` | No | GCP project ID for Vertex AI (required for `gemini-vertex`) |
 | `google_cloud_location` | No | Vertex AI location (default: `global`) |

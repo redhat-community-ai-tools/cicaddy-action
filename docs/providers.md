@@ -125,6 +125,28 @@ jobs:
 > `google-github-actions/auth` step sets `GOOGLE_APPLICATION_CREDENTIALS`
 > automatically.
 
+## Migration Notes
+
+### Default Vertex AI location changed from `us-east5` to `global`
+
+Previous versions defaulted to `us-east5` via the `cloud_ml_region` input. This
+release changes the default to `global` (via the new `google_cloud_location`
+input), which routes requests to the nearest available region.
+
+If your workflow relied on the implicit `us-east5` default, add an explicit
+location:
+
+```yaml
+- uses: redhat-community-ai-tools/cicaddy-action@main
+  with:
+    google_cloud_location: us-east5   # pin to previous default
+```
+
+### `cloud_ml_region` is deprecated
+
+The `cloud_ml_region` input still works but emits a warning. Replace it with
+`google_cloud_location` in your workflows.
+
 ## Provider Inputs Reference
 
 | Input | Required | Description |
