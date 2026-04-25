@@ -15,12 +15,11 @@ inputs:
     description: 'AI provider API key (not required for anthropic-vertex or gemini-vertex, which use GCP ADC)'
     required: false
   vertex_project_id:
-    description: 'GCP project ID for Vertex AI Claude (required when ai_provider is anthropic-vertex)'
+    description: 'GCP project ID for Vertex AI Claude (falls back to google_cloud_project if not set)'
     required: false
   cloud_ml_region:
     description: 'DEPRECATED: Use google_cloud_location instead. Vertex AI region for anthropic-vertex.'
     required: false
-    default: 'global'
   google_cloud_project:
     description: 'GCP project ID for Vertex AI (required for gemini-vertex, optional fallback for anthropic-vertex)'
     required: false
