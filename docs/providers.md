@@ -38,39 +38,57 @@ Use Google Cloud Workload Identity Federation (WIF) for keyless authentication.
 WIF eliminates static service account keys — GitHub mints a short-lived OIDC token
 per workflow run, and GCP exchanges it for temporary credentials scoped to that job.
 
+### Parameters
+
+The examples below use these placeholders. Set them as GitHub
+[repository variables](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables)
+(`vars.*`) so every workflow can reference them:
+
+| Placeholder | GitHub variable | How to obtain | Example |
+|-------------|-----------------|---------------|---------|
+| `GCP_PROJECT_ID` | `vars.GCP_PROJECT_ID` | `gcloud config get project` | `my-ai-project` |
+| `GCP_PROJECT_NUM` | `vars.GCP_PROJECT_NUM` | `gcloud projects describe $GCP_PROJECT_ID --format='value(projectNumber)'` | `123456789012` |
+| `GCP_WIF_PROVIDER` | `vars.GCP_WIF_PROVIDER` | Full provider resource name (see setup below) | `projects/123456789012/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
+| `GCP_SERVICE_ACCOUNT` | `vars.GCP_SERVICE_ACCOUNT` | SA email with Vertex AI permissions | `cicaddy@my-ai-project.iam.gserviceaccount.com` |
+| `GH_OWNER_ID` | — | `gh api orgs/YOUR_ORG --jq '.id'` (or `gh api users/YOU --jq '.id'`) | `12345678` |
+
 ### Prerequisites
 
 **One-time GCP setup** — create a Workload Identity Pool and OIDC provider:
 
 ```bash
+# Set these for your environment
+export GCP_PROJECT_ID="my-ai-project"
+export GCP_PROJECT_NUM="$(gcloud projects describe $GCP_PROJECT_ID --format='value(projectNumber)')"
+export GH_OWNER_ID="$(gh api orgs/YOUR_ORG --jq '.id')"
+
 # 1. Create a workload identity pool
 gcloud iam workload-identity-pools create "github-pool" \
-  --project="PROJECT_ID" \
+  --project="${GCP_PROJECT_ID}" \
   --location="global" \
   --display-name="GitHub Actions Pool"
 
 # 2. Create an OIDC provider linked to GitHub Actions
 gcloud iam workload-identity-pools providers create-oidc "github-provider" \
-  --project="PROJECT_ID" \
+  --project="${GCP_PROJECT_ID}" \
   --location="global" \
   --workload-identity-pool="github-pool" \
   --issuer-uri="https://token.actions.githubusercontent.com" \
   --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_owner_id=assertion.repository_owner_id" \
-  --attribute-condition="assertion.repository_owner_id=='OWNER_NUMERIC_ID'"
+  --attribute-condition="assertion.repository_owner_id=='${GH_OWNER_ID}'"
 
 # 3. Allow the pool to impersonate a service account
 gcloud iam service-accounts add-iam-policy-binding \
-  "cicaddy@PROJECT_ID.iam.gserviceaccount.com" \
-  --project="PROJECT_ID" \
+  "cicaddy@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
+  --project="${GCP_PROJECT_ID}" \
   --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/PROJECT_NUM/locations/global/workloadIdentityPools/github-pool/attribute.repository/OWNER/REPO"
+  --member="principalSet://iam.googleapis.com/projects/${GCP_PROJECT_NUM}/locations/global/workloadIdentityPools/github-pool/attribute.repository/YOUR_ORG/YOUR_REPO"
 ```
 
 The service account needs `roles/aiplatform.user` to invoke Vertex AI models.
 
 > **Security**: Use `repository_owner_id` (numeric, immutable) in attribute
 > conditions rather than `repository_owner` (name, can be re-registered).
-> Find your org's numeric ID with `gh api orgs/YOUR_ORG --jq '.id'`.
 
 ### Claude via Vertex AI
 
@@ -96,14 +114,14 @@ jobs:
 
       - uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: 'projects/PROJECT_NUM/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-          service_account: 'cicaddy@PROJECT_ID.iam.gserviceaccount.com'
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
       - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
           ai_provider: anthropic-vertex
           ai_model: claude-sonnet-4-6
-          vertex_project_id: PROJECT_ID
+          vertex_project_id: ${{ vars.GCP_PROJECT_ID }}
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
 ```
@@ -132,14 +150,14 @@ jobs:
 
       - uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: 'projects/PROJECT_NUM/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-          service_account: 'cicaddy@PROJECT_ID.iam.gserviceaccount.com'
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
       - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
           ai_provider: gemini-vertex
           ai_model: gemini-3-flash-preview
-          google_cloud_project: PROJECT_ID
+          google_cloud_project: ${{ vars.GCP_PROJECT_ID }}
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
 ```
@@ -162,7 +180,7 @@ Identity Pool), you can use a service account JSON key as a fallback:
   with:
     ai_provider: anthropic-vertex
     ai_model: claude-sonnet-4-6
-    vertex_project_id: PROJECT_ID
+    vertex_project_id: ${{ vars.GCP_PROJECT_ID }}
 ```
 
 The `google-github-actions/auth` action sets `GOOGLE_APPLICATION_CREDENTIALS`
