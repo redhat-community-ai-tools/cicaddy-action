@@ -25,7 +25,7 @@ inputs:
     description: 'GCP project ID for Vertex AI (required for gemini-vertex, optional fallback for anthropic-vertex)'
     required: false
   google_cloud_location:
-    description: 'Vertex AI location (default: global for gemini-vertex, us-east5 for anthropic-vertex)'
+    description: 'Vertex AI location (default: global)'
     required: false
   task_file:
     description: 'Path to DSPy YAML task file'

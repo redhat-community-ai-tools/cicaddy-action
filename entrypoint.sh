@@ -50,7 +50,7 @@ fi
 # Handle anthropic-vertex provider setup
 if [[ "${AI_PROVIDER}" == "anthropic-vertex" ]]; then
   export ANTHROPIC_VERTEX_PROJECT_ID="${INPUT_VERTEX_PROJECT_ID:-$GOOGLE_CLOUD_PROJECT}"
-  export CLOUD_ML_REGION="${INPUT_CLOUD_ML_REGION:-${GOOGLE_CLOUD_LOCATION:-us-east5}}"
+  export CLOUD_ML_REGION="${INPUT_CLOUD_ML_REGION:-${GOOGLE_CLOUD_LOCATION:-global}}"
   if [[ -z "${ANTHROPIC_VERTEX_PROJECT_ID}" && -z "${GOOGLE_CLOUD_PROJECT}" ]]; then
     echo "ERROR: ai_provider 'anthropic-vertex' requires vertex_project_id or google_cloud_project input"
     exit 3
