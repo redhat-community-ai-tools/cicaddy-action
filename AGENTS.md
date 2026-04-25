@@ -65,7 +65,7 @@ cicaddy-action/
 
 ### Dependencies
 
-- Depends on `cicaddy>=0.10.0` (core library) and `PyGithub>=2.1.0`
+- Depends on `cicaddy>=0.11.0` (core library) and `PyGithub>=2.1.0`
 - Follows the same agent/factory patterns as the core library
 - Extends `BaseAIAgent` from cicaddy
 
