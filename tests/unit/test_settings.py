@@ -234,3 +234,48 @@ class TestSettingsValidation:
             settings = load_settings()
             assert settings.google_cloud_project == "my-gcp-project"
             assert settings.google_cloud_location == "global"
+
+    def test_google_cloud_project_absent(self):
+        """GOOGLE_CLOUD_PROJECT absent results in None."""
+        env = {
+            "AI_PROVIDER": "gemini",
+            "AI_MODEL": "gemini-3-flash-preview",
+            "MCP_SERVERS_CONFIG": "[]",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("GOOGLE_CLOUD_PROJECT", None)
+            os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
+            from cicaddy_github.config.settings import load_settings
+
+            settings = load_settings()
+            assert settings.google_cloud_project is None
+
+    def test_google_cloud_project_empty_string(self):
+        """Empty string GOOGLE_CLOUD_PROJECT is not passed through."""
+        env = {
+            "AI_PROVIDER": "gemini",
+            "AI_MODEL": "gemini-3-flash-preview",
+            "GOOGLE_CLOUD_PROJECT": "",
+            "MCP_SERVERS_CONFIG": "[]",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            from cicaddy_github.config.settings import load_settings
+
+            settings = load_settings()
+            assert settings.google_cloud_project is None
+
+    def test_anthropic_vertex_with_google_cloud_project(self):
+        """anthropic-vertex provider uses GOOGLE_CLOUD_PROJECT for settings."""
+        env = {
+            "AI_PROVIDER": "anthropic-vertex",
+            "AI_MODEL": "claude-sonnet-4-20250514",
+            "GOOGLE_CLOUD_PROJECT": "my-gcp-project",
+            "ANTHROPIC_VERTEX_PROJECT_ID": "my-vertex-project",
+            "MCP_SERVERS_CONFIG": "[]",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            from cicaddy_github.config.settings import load_settings
+
+            settings = load_settings()
+            assert settings.google_cloud_project == "my-gcp-project"
+            assert settings.anthropic_vertex_project_id == "my-vertex-project"

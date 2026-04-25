@@ -65,7 +65,7 @@ cicaddy-action/
 
 ### Dependencies
 
-- Depends on `cicaddy>=0.8.0` (core library) and `PyGithub>=2.1.0`
+- Depends on `cicaddy>=0.10.0` (core library) and `PyGithub>=2.1.0`
 - Follows the same agent/factory patterns as the core library
 - Extends `BaseAIAgent` from cicaddy
 
@@ -113,14 +113,17 @@ All inputs use **underscores** (not hyphens) for Docker container compatibility:
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `ai_provider` | Yes | `gemini`, `openai`, `claude`, `anthropic-vertex` |
+| `ai_provider` | Yes | `gemini`, `openai`, `claude`, `anthropic-vertex`, `gemini-vertex` |
 | `ai_model` | Yes | Model identifier |
-| `ai_api_key` | No* | AI provider API key (not needed for `anthropic-vertex`) |
+| `ai_api_key` | No* | AI provider API key (not needed for `anthropic-vertex` or `gemini-vertex`) |
 | `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
-| `cloud_ml_region` | No | Vertex AI region (default: `us-east5`) |
+| `cloud_ml_region` | No | **Deprecated**: use `google_cloud_location` |
+| `google_cloud_project` | No | GCP project ID for Vertex AI (required for `gemini-vertex`) |
+| `google_cloud_location` | No | Vertex AI location (default: `global`) |
 | `task_file` | No | Path to DSPy YAML task file |
 | `task_prompt` | No | Inline task prompt |
 | `post_pr_comment` | No | Post results as PR comment (default: `false`) |
+| `submit_review` | No | Submit formal PR review with APPROVE/REQUEST_CHANGES (default: `false`) |
 | `github_token` | No | GitHub token (default: `${{ github.token }}`) |
 | `mcp_servers_config` | No | JSON array of MCP server configs |
 | `slack_webhook_url` | No | Slack webhook URL |

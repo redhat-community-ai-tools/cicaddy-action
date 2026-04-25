@@ -23,7 +23,7 @@ case "${AI_PROVIDER}" in
 esac
 
 # Validate API key for non-vertex providers
-if [[ "${AI_PROVIDER}" != "anthropic-vertex" && "${AI_PROVIDER}" != "gemini-vertex" && -z "${INPUT_AI_API_KEY}" ]]; then
+if [[ "${AI_PROVIDER}" != *-vertex && -z "${INPUT_AI_API_KEY}" ]]; then
   echo "ERROR: ai_api_key is required for provider '${AI_PROVIDER}'"
   exit 3
 fi
