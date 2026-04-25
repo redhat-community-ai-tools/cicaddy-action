@@ -45,7 +45,7 @@ uv run cicaddy run --env-file .env.my-review --delegation-mode auto --max-sub-ag
 |-----------------|---------|-------------|
 | `DELEGATION_MODE` / `delegation_mode` | `none` | `none` (single-agent) or `auto` (AI-powered delegation) |
 | `MAX_SUB_AGENTS` / `max_sub_agents` | `3` | Maximum concurrent sub-agents (1-10) |
-| `SUB_AGENT_MAX_ITERS` | `10` | Max inference iterations per sub-agent (1-15, env var only) |
+| `SUB_AGENT_MAX_ITERS` | `5` | Max inference iterations per sub-agent (1-15, env var only) |
 | `DELEGATION_AGENTS_DIR` | `.agents/delegation` | Directory for user-defined sub-agent YAML files (env var only) |
 | `DELEGATION_AGENTS` | (empty) | JSON config for inline custom sub-agent definitions (env var only) |
 | `TRIAGE_PROMPT` | (empty) | Optional custom instructions for the triage AI (env var only) |
@@ -156,7 +156,7 @@ When using `task_file` with `delegation_mode: auto`, the task definition is prov
 
 ## Cost Considerations
 
-Delegation multiplies AI inference calls. With defaults (`MAX_SUB_AGENTS=3`, `SUB_AGENT_MAX_ITERS=10`), a single PR review can use up to 1 (triage) + 3×10 (sub-agents) + 1 (aggregation) = **32 AI calls** versus 1-15 for single-agent mode. Tune `MAX_SUB_AGENTS` and `SUB_AGENT_MAX_ITERS` based on your AI provider tier and rate limits.
+Delegation multiplies AI inference calls. With defaults (`MAX_SUB_AGENTS=3`, `SUB_AGENT_MAX_ITERS=5`), a single PR review can use up to 1 (triage) + 3×5 (sub-agents) + 1 (aggregation) = **17 AI calls** versus 1-15 for single-agent mode. Tune `MAX_SUB_AGENTS` and `SUB_AGENT_MAX_ITERS` based on your AI provider tier and rate limits.
 
 ## Troubleshooting
 

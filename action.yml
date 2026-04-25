@@ -30,7 +30,7 @@ inputs:
     description: 'Path to DSPy YAML task file'
     required: false
   task_prompt:
-    description: 'Inline task prompt (alternative to task-file)'
+    description: 'Inline task prompt (alternative to task_file)'
     required: false
   report_template:
     description: 'Path to custom HTML report template'
