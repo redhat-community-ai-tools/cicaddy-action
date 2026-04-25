@@ -14,27 +14,47 @@ case "${AI_PROVIDER}" in
   claude|anthropic) export ANTHROPIC_API_KEY="${INPUT_AI_API_KEY}" ;;
   anthropic-vertex)
     ;;  # handled below
+  gemini-vertex)
+    ;;  # handled below
   *)
-    echo "ERROR: Unknown ai_provider '${AI_PROVIDER}'. Supported: gemini, openai, claude, anthropic, anthropic-vertex"
+    echo "ERROR: Unknown ai_provider '${AI_PROVIDER}'. Supported: gemini, openai, claude, anthropic, anthropic-vertex, gemini-vertex"
     exit 3
     ;;
 esac
 
 # Validate API key for non-vertex providers
-if [[ "${AI_PROVIDER}" != "anthropic-vertex" && -z "${INPUT_AI_API_KEY}" ]]; then
+if [[ "${AI_PROVIDER}" != "anthropic-vertex" && "${AI_PROVIDER}" != "gemini-vertex" && -z "${INPUT_AI_API_KEY}" ]]; then
   echo "ERROR: ai_api_key is required for provider '${AI_PROVIDER}'"
   exit 3
+fi
+
+# Export shared Vertex AI env vars
+if [[ -n "${INPUT_GOOGLE_CLOUD_PROJECT}" ]]; then
+  export GOOGLE_CLOUD_PROJECT="${INPUT_GOOGLE_CLOUD_PROJECT}"
+fi
+if [[ -n "${INPUT_GOOGLE_CLOUD_LOCATION}" ]]; then
+  export GOOGLE_CLOUD_LOCATION="${INPUT_GOOGLE_CLOUD_LOCATION}"
+fi
+
+# Handle gemini-vertex provider setup
+if [[ "${AI_PROVIDER}" == "gemini-vertex" ]]; then
+  if [[ -z "${GOOGLE_CLOUD_PROJECT}" ]]; then
+    echo "ERROR: ai_provider 'gemini-vertex' requires google_cloud_project input"
+    exit 3
+  fi
+  if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
+    echo "WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Use google-github-actions/auth before this step."
+  fi
 fi
 
 # Handle anthropic-vertex provider setup
 if [[ "${AI_PROVIDER}" == "anthropic-vertex" ]]; then
   export ANTHROPIC_VERTEX_PROJECT_ID="${INPUT_VERTEX_PROJECT_ID}"
   export CLOUD_ML_REGION="${INPUT_CLOUD_ML_REGION:-us-east5}"
-  if [[ -z "${ANTHROPIC_VERTEX_PROJECT_ID}" ]]; then
-    echo "ERROR: ai_provider 'anthropic-vertex' requires vertex_project_id input"
+  if [[ -z "${ANTHROPIC_VERTEX_PROJECT_ID}" && -z "${GOOGLE_CLOUD_PROJECT}" ]]; then
+    echo "ERROR: ai_provider 'anthropic-vertex' requires vertex_project_id or google_cloud_project input"
     exit 3
   fi
-  # GOOGLE_APPLICATION_CREDENTIALS must be set by google-github-actions/auth
   if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
     echo "WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Use google-github-actions/auth before this step."
   fi

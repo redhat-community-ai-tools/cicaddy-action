@@ -6,7 +6,7 @@ branding:
 
 inputs:
   ai_provider:
-    description: 'AI provider: gemini, openai, claude, anthropic-vertex'
+    description: 'AI provider: gemini, openai, claude, anthropic-vertex, gemini-vertex'
     required: true
   ai_model:
     description: 'Model identifier'
@@ -18,9 +18,15 @@ inputs:
     description: 'GCP project ID for Vertex AI Claude (required when ai_provider is anthropic-vertex)'
     required: false
   cloud_ml_region:
-    description: 'Vertex AI region (default: us-east5)'
+    description: 'Vertex AI region for anthropic-vertex (default: us-east5, prefer google_cloud_location)'
     required: false
     default: 'us-east5'
+  google_cloud_project:
+    description: 'GCP project ID for Vertex AI (required for gemini-vertex, optional fallback for anthropic-vertex)'
+    required: false
+  google_cloud_location:
+    description: 'Vertex AI location (default: global for gemini-vertex, us-east5 for anthropic-vertex)'
+    required: false
   task_file:
     description: 'Path to DSPy YAML task file'
     required: false

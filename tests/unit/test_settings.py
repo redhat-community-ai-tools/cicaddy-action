@@ -202,3 +202,35 @@ class TestSettingsValidation:
 
             settings = load_settings()
             assert settings.submit_review is True
+
+    def test_google_cloud_project_passed_through(self):
+        """GOOGLE_CLOUD_PROJECT is passed through to settings."""
+        env = {
+            "AI_PROVIDER": "gemini-vertex",
+            "AI_MODEL": "gemini-3-flash-preview",
+            "GOOGLE_CLOUD_PROJECT": "my-gcp-project",
+            "GOOGLE_CLOUD_LOCATION": "us-central1",
+            "MCP_SERVERS_CONFIG": "[]",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            from cicaddy_github.config.settings import load_settings
+
+            settings = load_settings()
+            assert settings.google_cloud_project == "my-gcp-project"
+            assert settings.google_cloud_location == "us-central1"
+
+    def test_google_cloud_location_defaults_to_global(self):
+        """GOOGLE_CLOUD_LOCATION defaults to 'global' when not set."""
+        env = {
+            "AI_PROVIDER": "gemini-vertex",
+            "AI_MODEL": "gemini-3-flash-preview",
+            "GOOGLE_CLOUD_PROJECT": "my-gcp-project",
+            "MCP_SERVERS_CONFIG": "[]",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
+            from cicaddy_github.config.settings import load_settings
+
+            settings = load_settings()
+            assert settings.google_cloud_project == "my-gcp-project"
+            assert settings.google_cloud_location == "global"

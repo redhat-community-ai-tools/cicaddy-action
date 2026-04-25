@@ -141,6 +141,10 @@ def load_settings() -> Settings:
         env_data["anthropic_vertex_project_id"] = os.getenv("ANTHROPIC_VERTEX_PROJECT_ID")
     if os.getenv("CLOUD_ML_REGION"):
         env_data["cloud_ml_region"] = os.getenv("CLOUD_ML_REGION")
+    if os.getenv("GOOGLE_CLOUD_PROJECT"):
+        env_data["google_cloud_project"] = os.getenv("GOOGLE_CLOUD_PROJECT")
+    if os.getenv("GOOGLE_CLOUD_LOCATION"):
+        env_data["google_cloud_location"] = os.getenv("GOOGLE_CLOUD_LOCATION")
 
     # MCP server configuration
     if os.getenv("MCP_SERVERS_CONFIG"):
