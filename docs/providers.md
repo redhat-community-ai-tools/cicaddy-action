@@ -2,7 +2,7 @@
 
 cicaddy-action supports multiple AI providers. This guide covers provider-specific setup.
 
-## Gemini
+## Gemini (API Key)
 
 ```yaml
 - uses: redhat-community-ai-tools/cicaddy-action@main
@@ -32,13 +32,50 @@ cicaddy-action supports multiple AI providers. This guide covers provider-specif
     ai_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-## Claude via Vertex AI (GCP)
+## Vertex AI (GCP) — Claude & Gemini
 
-Uses Google Cloud Workload Identity Federation for keyless authentication — no
-service account JSON keys to manage. This is the recommended approach for GCP.
+Use Google Cloud Workload Identity Federation (WIF) for keyless authentication.
+WIF eliminates static service account keys — GitHub mints a short-lived OIDC token
+per workflow run, and GCP exchanges it for temporary credentials scoped to that job.
+
+### Prerequisites
+
+**One-time GCP setup** — create a Workload Identity Pool and OIDC provider:
+
+```bash
+# 1. Create a workload identity pool
+gcloud iam workload-identity-pools create "github-pool" \
+  --project="PROJECT_ID" \
+  --location="global" \
+  --display-name="GitHub Actions Pool"
+
+# 2. Create an OIDC provider linked to GitHub Actions
+gcloud iam workload-identity-pools providers create-oidc "github-provider" \
+  --project="PROJECT_ID" \
+  --location="global" \
+  --workload-identity-pool="github-pool" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_owner_id=assertion.repository_owner_id" \
+  --attribute-condition="assertion.repository_owner_id=='OWNER_NUMERIC_ID'"
+
+# 3. Allow the pool to impersonate a service account
+gcloud iam service-accounts add-iam-policy-binding \
+  "cicaddy@PROJECT_ID.iam.gserviceaccount.com" \
+  --project="PROJECT_ID" \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/PROJECT_NUM/locations/global/workloadIdentityPools/github-pool/attribute.repository/OWNER/REPO"
+```
+
+The service account needs `roles/aiplatform.user` to invoke Vertex AI models.
+
+> **Security**: Use `repository_owner_id` (numeric, immutable) in attribute
+> conditions rather than `repository_owner` (name, can be re-registered).
+> Find your org's numeric ID with `gh api orgs/YOUR_ORG --jq '.id'`.
+
+### Claude via Vertex AI
 
 ```yaml
-name: PR Review (Vertex AI)
+name: PR Review (Claude on Vertex AI)
 
 on:
   pull_request:
@@ -59,36 +96,22 @@ jobs:
 
       - uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-repo'
-          service_account: 'cicaddy@my-project.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/PROJECT_NUM/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'cicaddy@PROJECT_ID.iam.gserviceaccount.com'
 
       - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
           ai_provider: anthropic-vertex
           ai_model: claude-sonnet-4-6
-          vertex_project_id: my-project
+          vertex_project_id: PROJECT_ID
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
 ```
 
-> **Security**: Prefer Workload Identity Federation (shown above) over service
-> account keys. If you must use a key, store the JSON as a GitHub secret and pass
-> it via `google-github-actions/auth` with `credentials_json`:
-> ```yaml
-> - uses: google-github-actions/auth@v3
->   with:
->     credentials_json: ${{ secrets.GCP_SA_KEY }}
-> ```
-> The auth action sets `GOOGLE_APPLICATION_CREDENTIALS` automatically — never
-> write keys to disk manually or echo them in scripts.
-
-## Gemini via Vertex AI (GCP)
-
-Uses Google Cloud authentication (Workload Identity Federation or service account)
-to call Gemini models through the Vertex AI API — no Gemini API key needed.
+### Gemini via Vertex AI
 
 ```yaml
-name: PR Review (Gemini Vertex AI)
+name: PR Review (Gemini on Vertex AI)
 
 on:
   pull_request:
@@ -96,7 +119,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write       # Required for Workload Identity Federation
+  id-token: write
   pull-requests: write
 
 jobs:
@@ -109,21 +132,57 @@ jobs:
 
       - uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-repo'
-          service_account: 'cicaddy@my-project.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/PROJECT_NUM/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'cicaddy@PROJECT_ID.iam.gserviceaccount.com'
 
       - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
           ai_provider: gemini-vertex
           ai_model: gemini-3-flash-preview
-          google_cloud_project: my-project
+          google_cloud_project: PROJECT_ID
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
 ```
 
 > **Note**: `google_cloud_project` is required for `gemini-vertex`. The
 > `google-github-actions/auth` step sets `GOOGLE_APPLICATION_CREDENTIALS`
-> automatically.
+> automatically. No `ai_api_key` is needed.
+
+### Fallback: Service Account Key
+
+If WIF is not available (e.g., restricted GCP environments without a Workload
+Identity Pool), you can use a service account JSON key as a fallback:
+
+```yaml
+- uses: google-github-actions/auth@v3
+  with:
+    credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+- uses: redhat-community-ai-tools/cicaddy-action@main
+  with:
+    ai_provider: anthropic-vertex
+    ai_model: claude-sonnet-4-6
+    vertex_project_id: PROJECT_ID
+```
+
+The `google-github-actions/auth` action sets `GOOGLE_APPLICATION_CREDENTIALS`
+automatically in both WIF and SA key modes — never write keys to disk manually
+or echo them in scripts.
+
+> **Prefer WIF over service account keys.** SA keys are long-lived secrets
+> that can leak and require manual rotation. WIF tokens are short-lived
+> (~1 hour), scoped to the specific workflow run, and leave no secrets to manage.
+
+### Authentication Method Comparison
+
+| | WIF (recommended) | SA Key (fallback) | API Key |
+|-|--------------------|-------------------|---------|
+| Secrets to manage | None | JSON key in GitHub secret | API key in GitHub secret |
+| Token lifetime | ~1 hour (auto-issued) | Until key is revoked | Until key is revoked |
+| Rotation | Automatic | Manual (every 90 days) | Manual |
+| Blast radius | Single workflow run | Unlimited until revoked | Unlimited until revoked |
+| Audit trail | Per-job OIDC claims | SA-level logging | Key-level logging |
+| Scope control | Repo, branch, workflow | SA permissions only | Key permissions only |
 
 ## Migration Notes
 

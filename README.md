@@ -123,7 +123,7 @@ agent instead of the default PR code review agent. The `run_govulncheck`
 input enables vulnerability reachability analysis (requires Go and
 govulncheck installed in the runner).
 
-See [docs/providers.md](docs/providers.md) for provider-specific configuration including Claude via Vertex AI (GCP), OpenAI, and Anthropic API setup.
+See [docs/providers.md](docs/providers.md) for provider-specific configuration including Vertex AI with Workload Identity Federation (keyless auth for Claude and Gemini on GCP), OpenAI, and Anthropic API setup.
 
 ## Inputs
 
