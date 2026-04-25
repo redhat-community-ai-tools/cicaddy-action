@@ -82,12 +82,56 @@ jobs:
 > The auth action sets `GOOGLE_APPLICATION_CREDENTIALS` automatically — never
 > write keys to disk manually or echo them in scripts.
 
+## Gemini via Vertex AI (GCP)
+
+Uses Google Cloud authentication (Workload Identity Federation or service account)
+to call Gemini models through the Vertex AI API — no Gemini API key needed.
+
+```yaml
+name: PR Review (Gemini Vertex AI)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  id-token: write       # Required for Workload Identity Federation
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-repo'
+          service_account: 'cicaddy@my-project.iam.gserviceaccount.com'
+
+      - uses: redhat-community-ai-tools/cicaddy-action@main
+        with:
+          ai_provider: gemini-vertex
+          ai_model: gemini-3-flash-preview
+          google_cloud_project: my-project
+          task_file: tasks/pr_review.yml
+          post_pr_comment: 'true'
+```
+
+> **Note**: `google_cloud_project` is required for `gemini-vertex`. The
+> `google-github-actions/auth` step sets `GOOGLE_APPLICATION_CREDENTIALS`
+> automatically.
+
 ## Provider Inputs Reference
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `ai_provider` | Yes | `gemini`, `openai`, `claude`, or `anthropic-vertex` |
+| `ai_provider` | Yes | `gemini`, `openai`, `claude`, `anthropic-vertex`, or `gemini-vertex` |
 | `ai_model` | Yes | Model identifier |
-| `ai_api_key` | No | API key (not needed for `anthropic-vertex`) |
-| `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
+| `ai_api_key` | No | API key (not needed for `anthropic-vertex` or `gemini-vertex`) |
+| `vertex_project_id` | No | GCP project ID for Vertex AI Claude (falls back to `google_cloud_project`) |
+| `google_cloud_project` | No | GCP project ID for Vertex AI (required for `gemini-vertex`, optional fallback for `anthropic-vertex`) |
 | `google_cloud_location` | No | Vertex AI location (default: `global`) |
