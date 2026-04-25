@@ -133,7 +133,7 @@ See [docs/providers.md](docs/providers.md) for provider-specific configuration i
 | `ai_model` | Yes | Model identifier |
 | `ai_api_key` | No | AI provider API key (not needed for `anthropic-vertex`) |
 | `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
-| `cloud_ml_region` | No | Vertex AI region (default: `us-east5`) |
+| `google_cloud_location` | No | Vertex AI location (default: `global`) |
 | `task_file` | No | Path to DSPy YAML task file |
 | `task_prompt` | No | Inline task prompt (alternative to task_file) |
 | `report_template` | No | Path to custom HTML report template |
@@ -239,7 +239,7 @@ uv run cicaddy validate --env-file .env.my-review
 | `AI_MODEL` | Yes | Model identifier (e.g. `gemini-3-flash-preview`) |
 | `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Yes* | API key matching the provider (*not needed for `anthropic-vertex`) |
 | `ANTHROPIC_VERTEX_PROJECT_ID` | No | GCP project ID (required for `anthropic-vertex`) |
-| `CLOUD_ML_REGION` | No | Vertex AI region (default: `us-east5`) |
+| `GOOGLE_CLOUD_LOCATION` | No | Vertex AI location (default: `global`) |
 | `GITHUB_TOKEN` | Yes | GitHub personal access token |
 | `GITHUB_REPOSITORY` | Yes | Target repo in `owner/repo` format |
 | `GITHUB_EVENT_NAME` | No | Set to `pull_request` for auto-detection (optional if `GITHUB_PR_NUMBER` is set) |

@@ -90,4 +90,4 @@ jobs:
 | `ai_model` | Yes | Model identifier |
 | `ai_api_key` | No | API key (not needed for `anthropic-vertex`) |
 | `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
-| `cloud_ml_region` | No | Vertex AI region (default: `us-east5`) |
+| `google_cloud_location` | No | Vertex AI location (default: `global`) |
