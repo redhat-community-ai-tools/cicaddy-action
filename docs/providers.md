@@ -147,6 +147,25 @@ location:
 The `cloud_ml_region` input still works but emits a warning. Replace it with
 `google_cloud_location` in your workflows.
 
+## Security Considerations
+
+### `submit_review` and fork pull requests
+
+When `submit_review: 'true'` is set, the action submits a formal GitHub review
+(APPROVE or REQUEST\_CHANGES) on behalf of the token owner. If your repository
+accepts pull requests from forks and you use `pull_request_target` to expose
+secrets, an attacker could craft a PR that tricks the AI into approving
+malicious code.
+
+Mitigations:
+
+- Do **not** combine `submit_review: 'true'` with `pull_request_target` on
+  repositories that accept fork PRs.
+- Use `pull_request` (not `pull_request_target`) when possible — it runs in the
+  fork's context and cannot access repository secrets.
+- If you must use `pull_request_target`, restrict `submit_review` to trusted
+  contributors via a branch protection rule or a job-level `if:` condition.
+
 ## Provider Inputs Reference
 
 | Input | Required | Description |

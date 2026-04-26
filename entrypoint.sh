@@ -45,6 +45,7 @@ if [[ "${AI_PROVIDER}" == "gemini-vertex" ]]; then
   if [[ -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
     echo "WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Use google-github-actions/auth before this step."
   fi
+  export GOOGLE_CLOUD_LOCATION="${GOOGLE_CLOUD_LOCATION:-global}"
 fi
 
 # Handle anthropic-vertex provider setup
