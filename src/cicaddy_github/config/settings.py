@@ -140,7 +140,17 @@ def load_settings() -> Settings:
     if os.getenv("ANTHROPIC_VERTEX_PROJECT_ID"):
         env_data["anthropic_vertex_project_id"] = os.getenv("ANTHROPIC_VERTEX_PROJECT_ID")
     if os.getenv("CLOUD_ML_REGION"):
-        env_data["cloud_ml_region"] = os.getenv("CLOUD_ML_REGION")
+        logger.warning("CLOUD_ML_REGION is deprecated; use GOOGLE_CLOUD_LOCATION instead")
+    gcp_project = os.getenv("GOOGLE_CLOUD_PROJECT")
+    if gcp_project:
+        env_data["google_cloud_project"] = gcp_project
+    elif gcp_project == "":
+        os.environ.pop("GOOGLE_CLOUD_PROJECT", None)
+    gcp_location = os.getenv("GOOGLE_CLOUD_LOCATION")
+    if gcp_location:
+        env_data["google_cloud_location"] = gcp_location
+    elif gcp_location == "":
+        os.environ.pop("GOOGLE_CLOUD_LOCATION", None)
 
     # MCP server configuration
     if os.getenv("MCP_SERVERS_CONFIG"):

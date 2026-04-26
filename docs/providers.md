@@ -82,12 +82,97 @@ jobs:
 > The auth action sets `GOOGLE_APPLICATION_CREDENTIALS` automatically — never
 > write keys to disk manually or echo them in scripts.
 
+## Gemini via Vertex AI (GCP)
+
+Uses Google Cloud authentication (Workload Identity Federation or service account)
+to call Gemini models through the Vertex AI API — no Gemini API key needed.
+
+```yaml
+name: PR Review (Gemini Vertex AI)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  id-token: write       # Required for Workload Identity Federation
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: 'projects/123/locations/global/workloadIdentityPools/github/providers/my-repo'
+          service_account: 'cicaddy@my-project.iam.gserviceaccount.com'
+
+      - uses: redhat-community-ai-tools/cicaddy-action@main
+        with:
+          ai_provider: gemini-vertex
+          ai_model: gemini-3-flash-preview
+          google_cloud_project: my-project
+          task_file: tasks/pr_review.yml
+          post_pr_comment: 'true'
+```
+
+> **Note**: `google_cloud_project` is required for `gemini-vertex`. The
+> `google-github-actions/auth` step sets `GOOGLE_APPLICATION_CREDENTIALS`
+> automatically.
+
+## Migration Notes
+
+### Default Vertex AI location changed from `us-east5` to `global`
+
+Previous versions defaulted to `us-east5` via the `cloud_ml_region` input. This
+release changes the default to `global` (via the new `google_cloud_location`
+input), which routes requests to the nearest available region.
+
+If your workflow relied on the implicit `us-east5` default, add an explicit
+location:
+
+```yaml
+- uses: redhat-community-ai-tools/cicaddy-action@main
+  with:
+    google_cloud_location: us-east5   # pin to previous default
+```
+
+### `cloud_ml_region` is deprecated
+
+The `cloud_ml_region` input still works but emits a warning. Replace it with
+`google_cloud_location` in your workflows.
+
+## Security Considerations
+
+### `submit_review` and fork pull requests
+
+When `submit_review: 'true'` is set, the action submits a formal GitHub review
+(APPROVE or REQUEST\_CHANGES) on behalf of the token owner. If your repository
+accepts pull requests from forks and you use `pull_request_target` to expose
+secrets, an attacker could craft a PR that tricks the AI into approving
+malicious code.
+
+Mitigations:
+
+- Do **not** combine `submit_review: 'true'` with `pull_request_target` on
+  repositories that accept fork PRs.
+- Use `pull_request` (not `pull_request_target`) when possible — it runs in the
+  fork's context and cannot access repository secrets.
+- If you must use `pull_request_target`, restrict `submit_review` to trusted
+  contributors via a branch protection rule or a job-level `if:` condition.
+
 ## Provider Inputs Reference
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `ai_provider` | Yes | `gemini`, `openai`, `claude`, or `anthropic-vertex` |
+| `ai_provider` | Yes | `gemini`, `openai`, `claude`, `anthropic-vertex`, or `gemini-vertex` |
 | `ai_model` | Yes | Model identifier |
-| `ai_api_key` | No | API key (not needed for `anthropic-vertex`) |
-| `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
-| `cloud_ml_region` | No | Vertex AI region (default: `us-east5`) |
+| `ai_api_key` | No | API key (not needed for `anthropic-vertex` or `gemini-vertex`) |
+| `vertex_project_id` | No | GCP project ID for Vertex AI Claude (falls back to `google_cloud_project`) |
+| `google_cloud_project` | No | GCP project ID for Vertex AI (required for `gemini-vertex`, optional fallback for `anthropic-vertex`) |
+| `google_cloud_location` | No | Vertex AI location (default: `global`) |

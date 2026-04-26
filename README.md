@@ -8,7 +8,7 @@ GitHub Action that wraps [cicaddy](https://github.com/waynesun09/cicaddy) for ru
 - **Sub-agent delegation** for parallel specialized reviews (security, architecture, performance, etc.)
 - **Go dependency impact analysis** for Go dependency update PRs with risk classification
 - **Changelog report generation** from git tag diffs and release notes
-- **Multiple AI providers**: Gemini, OpenAI, Claude, Claude via Vertex AI
+- **Multiple AI providers**: Gemini, OpenAI, Claude, Claude via Vertex AI, Gemini via Vertex AI
 - **Secret redaction** via detect-secrets for safe public outputs
 - **DSPy YAML task definitions** for customizable analysis workflows
 
@@ -129,11 +129,12 @@ See [docs/providers.md](docs/providers.md) for provider-specific configuration i
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `ai_provider` | Yes | AI provider: `gemini`, `openai`, `claude`, `anthropic-vertex` |
+| `ai_provider` | Yes | AI provider: `gemini`, `openai`, `claude`, `anthropic-vertex`, `gemini-vertex` |
 | `ai_model` | Yes | Model identifier |
-| `ai_api_key` | No | AI provider API key (not needed for `anthropic-vertex`) |
-| `vertex_project_id` | No | GCP project ID (required for `anthropic-vertex`) |
-| `cloud_ml_region` | No | Vertex AI region (default: `us-east5`) |
+| `ai_api_key` | No | AI provider API key (not needed for `anthropic-vertex` or `gemini-vertex`) |
+| `vertex_project_id` | No | GCP project ID for Vertex AI Claude (falls back to `google_cloud_project`) |
+| `google_cloud_project` | No | GCP project ID for Vertex AI (required for `gemini-vertex`, optional fallback for `anthropic-vertex`) |
+| `google_cloud_location` | No | Vertex AI location (default: `global`) |
 | `task_file` | No | Path to DSPy YAML task file |
 | `task_prompt` | No | Inline task prompt (alternative to task_file) |
 | `report_template` | No | Path to custom HTML report template |
@@ -235,11 +236,12 @@ uv run cicaddy validate --env-file .env.my-review
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `AI_PROVIDER` | Yes | `gemini`, `openai`, `claude`, or `anthropic-vertex` |
+| `AI_PROVIDER` | Yes | `gemini`, `openai`, `claude`, `anthropic-vertex`, or `gemini-vertex` |
 | `AI_MODEL` | Yes | Model identifier (e.g. `gemini-3-flash-preview`) |
-| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Yes* | API key matching the provider (*not needed for `anthropic-vertex`) |
-| `ANTHROPIC_VERTEX_PROJECT_ID` | No | GCP project ID (required for `anthropic-vertex`) |
-| `CLOUD_ML_REGION` | No | Vertex AI region (default: `us-east5`) |
+| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` | Yes* | API key matching the provider (*not needed for `anthropic-vertex` or `gemini-vertex`) |
+| `ANTHROPIC_VERTEX_PROJECT_ID` | No | GCP project ID (required for `anthropic-vertex`, falls back to `GOOGLE_CLOUD_PROJECT`) |
+| `GOOGLE_CLOUD_PROJECT` | No | GCP project ID for Vertex AI (required for `gemini-vertex`) |
+| `GOOGLE_CLOUD_LOCATION` | No | Vertex AI location (default: `global`) |
 | `GITHUB_TOKEN` | Yes | GitHub personal access token |
 | `GITHUB_REPOSITORY` | Yes | Target repo in `owner/repo` format |
 | `GITHUB_EVENT_NAME` | No | Set to `pull_request` for auto-detection (optional if `GITHUB_PR_NUMBER` is set) |
@@ -251,9 +253,6 @@ uv run cicaddy validate --env-file .env.my-review
 | `SUB_AGENT_MAX_ITERS` | No | Max iterations per sub-agent, 1-15 (default: `5`) |
 | `AI_TASK_FILE` | No | Path to DSPy YAML task file for custom workflows |
 | `RUN_GOVULNCHECK` | No | Run govulncheck for reachability analysis (`true`/`false`) |
-| `DELEGATION_MODE` | No | `none` or `auto` for sub-agent delegation |
-| `MAX_SUB_AGENTS` | No | Maximum concurrent sub-agents (default: `3`) |
-| `SUB_AGENT_MAX_ITERS` | No | Max iterations per sub-agent (default: `10`) |
 | `DELEGATION_AGENTS_DIR` | No | Custom agent YAML directory (default: `.agents/delegation`) |
 | `DELEGATION_AGENTS` | No | JSON config for inline custom sub-agents |
 | `TRIAGE_PROMPT` | No | Custom triage instructions |
