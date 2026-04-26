@@ -23,7 +23,9 @@ credentials scoped to that job.
 
 1. Create a Workload Identity Pool and OIDC provider
 2. Create a service account with `roles/aiplatform.user`
-3. Bind the pool to the service account for your repository
+3. Bind the pool to the service account **scoped to your specific repository**
+   (the `--member` flag must use a `principalSet` with `attribute.repository/OWNER/REPO`
+   to enforce repository-level isolation)
 
 Store the resulting values as GitHub
 [repository variables](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables)
@@ -49,14 +51,13 @@ on:
   pull_request:
     types: [opened, synchronize]
 
-permissions:
-  contents: read
-  id-token: write       # Required for Workload Identity Federation
-  pull-requests: write
-
 jobs:
   review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       # Required for Workload Identity Federation
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -78,6 +79,14 @@ jobs:
           DELEGATION_MODE: auto
 ```
 
+> **Fork PRs**: The `pull_request` event cannot mint OIDC tokens for PRs
+> from forks, so WIF authentication will fail. To support fork PRs, use
+> `pull_request_target` with a label gate (e.g. `safe-to-review`) to
+> prevent unauthorized code execution. See
+> `.github/workflows/pr-review.yml` for an example and
+> [docs/providers.md](docs/providers.md#submit_review-and-fork-pull-requests)
+> for security details.
+
 > **Sub-Agent Delegation**: When `DELEGATION_MODE` is set to `auto`, the agent uses AI-powered triage to analyze the PR diff and spawns specialized sub-agents in parallel (e.g., code quality, security, performance). Each sub-agent runs with a focused scope and reduced token budget, and their results are aggregated into a single unified review. This produces deeper, more structured reviews compared to single-agent mode. Set `DELEGATION_MODE` to `none` to use a single agent instead. See [docs/delegation.md](docs/delegation.md) for details.
 
 ### Changelog Report on Release
@@ -89,13 +98,12 @@ on:
   release:
     types: [published]
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
   changelog:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       # Required for Workload Identity Federation
     steps:
       - uses: actions/checkout@v6
         with:
@@ -131,14 +139,13 @@ on:
       - 'go.mod'
       - 'go.sum'
 
-permissions:
-  contents: read
-  id-token: write
-  pull-requests: write
-
 jobs:
   dep-review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       # Required for Workload Identity Federation
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
