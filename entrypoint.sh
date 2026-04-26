@@ -80,7 +80,9 @@ _to_abs() {
   fi
   local full_path="${WORKSPACE}/${path}"
   # Resolve symlinks and .. components, then verify the result is under WORKSPACE
-  if [[ "$(realpath -m "$full_path")" != "${WORKSPACE}"* ]]; then
+  local resolved
+  resolved="$(realpath -m "$full_path")"
+  if [[ "$resolved" != "${WORKSPACE}/"* && "$resolved" != "${WORKSPACE}" ]]; then
     echo "ERROR: Path traversal detected: $path" >&2
     exit 1
   fi
