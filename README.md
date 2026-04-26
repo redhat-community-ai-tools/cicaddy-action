@@ -12,6 +12,27 @@ GitHub Action that wraps [cicaddy](https://github.com/waynesun09/cicaddy) for ru
 - **Secret redaction** via detect-secrets for safe public outputs
 - **DSPy YAML task definitions** for customizable analysis workflows
 
+## Prerequisites
+
+The examples below use **Vertex AI with Workload Identity Federation (WIF)**
+for keyless authentication. WIF eliminates static secrets — GitHub mints a
+short-lived OIDC token per workflow run and GCP exchanges it for temporary
+credentials scoped to that job.
+
+**One-time GCP setup required:**
+
+1. Create a Workload Identity Pool and OIDC provider
+2. Create a service account with `roles/aiplatform.user`
+3. Bind the pool to the service account for your repository
+
+Store the resulting values as GitHub
+[repository variables](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables)
+(`vars.GCP_WIF_PROVIDER`, `vars.GCP_SERVICE_ACCOUNT`, `vars.GCP_PROJECT_ID`).
+
+See [docs/providers.md](docs/providers.md) for the full `gcloud` setup
+commands, authentication method comparison (WIF vs SA key vs API key), and
+alternative provider configurations (OpenAI, Claude, standalone Gemini API key).
+
 ## Quick Start
 
 ### AI PR Review
@@ -29,6 +50,8 @@ on:
     types: [opened, synchronize]
 
 permissions:
+  contents: read
+  id-token: write       # Required for Workload Identity Federation
   pull-requests: write
 
 jobs:
@@ -39,11 +62,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
       - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
-          ai_provider: gemini
+          ai_provider: gemini-vertex
           ai_model: gemini-3-flash-preview
-          ai_api_key: ${{ secrets.AI_API_KEY }}
+          google_cloud_project: ${{ vars.GCP_PROJECT_ID }}
           task_file: tasks/pr_review.yml
           post_pr_comment: 'true'
         env:
@@ -61,6 +89,10 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   changelog:
     runs-on: ubuntu-latest
@@ -69,11 +101,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
       - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
-          ai_provider: gemini
+          ai_provider: gemini-vertex
           ai_model: gemini-3-flash-preview
-          ai_api_key: ${{ secrets.AI_API_KEY }}
+          google_cloud_project: ${{ vars.GCP_PROJECT_ID }}
           task_file: tasks/changelog_report.yml
 ```
 
@@ -96,6 +133,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
   pull-requests: write
 
 jobs:
@@ -106,11 +144,17 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.22'
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
       - uses: redhat-community-ai-tools/cicaddy-action@main
         with:
-          ai_provider: gemini
+          ai_provider: gemini-vertex
           ai_model: gemini-3-flash-preview
-          ai_api_key: ${{ secrets.AI_API_KEY }}
+          google_cloud_project: ${{ vars.GCP_PROJECT_ID }}
           task_file: tasks/go_dep_impact_review.yml
           post_pr_comment: 'true'
           run_govulncheck: 'true'
@@ -123,7 +167,9 @@ agent instead of the default PR code review agent. The `run_govulncheck`
 input enables vulnerability reachability analysis (requires Go and
 govulncheck installed in the runner).
 
-See [docs/providers.md](docs/providers.md) for provider-specific configuration including Vertex AI with Workload Identity Federation (keyless auth for Claude and Gemini on GCP), OpenAI, and Anthropic API setup.
+See [docs/providers.md](docs/providers.md) for the full WIF setup guide,
+alternative providers (OpenAI, Claude, standalone Gemini API key), the
+SA key fallback, and an authentication method comparison table.
 
 ## Inputs
 
@@ -179,10 +225,16 @@ uv pip install -e ".[test]"
 **2. Create an env file** (e.g. `.env.my-review`):
 
 ```bash
-# AI Provider
-AI_PROVIDER=gemini
+# AI Provider (Gemini via Vertex AI — uses Google Cloud ADC, no API key needed)
+AI_PROVIDER=gemini-vertex
 AI_MODEL=gemini-3-flash-preview
-GEMINI_API_KEY=<your-gemini-api-key>
+GOOGLE_CLOUD_PROJECT=your-gcp-project
+# GOOGLE_CLOUD_LOCATION=global  # optional, defaults to "global"
+
+# AI Provider (standalone Gemini API key — alternative to Vertex AI)
+# AI_PROVIDER=gemini
+# AI_MODEL=gemini-3-flash-preview
+# GEMINI_API_KEY=<your-gemini-api-key>
 
 # GitHub Configuration
 GITHUB_TOKEN=<your-github-token>
