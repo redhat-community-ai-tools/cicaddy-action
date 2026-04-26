@@ -50,7 +50,9 @@ The examples below use these placeholders. Set them as GitHub
 | `GCP_PROJECT_NUM` | `vars.GCP_PROJECT_NUM` | `gcloud projects describe $GCP_PROJECT_ID --format='value(projectNumber)'` | `123456789012` |
 | `GCP_WIF_PROVIDER` | `vars.GCP_WIF_PROVIDER` | Full provider resource name (see setup below) | `projects/123456789012/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
 | `GCP_SERVICE_ACCOUNT` | `vars.GCP_SERVICE_ACCOUNT` | SA email with Vertex AI permissions | `cicaddy@my-ai-project.iam.gserviceaccount.com` |
-| `GH_OWNER_ID` | — | `gh api orgs/YOUR_ORG --jq '.id'` (or `gh api users/YOU --jq '.id'`) | `12345678` |
+| `GH_ORG` | — | GitHub org or user that owns the repo | `my-org` |
+| `GH_REPO` | — | Repository name | `my-repo` |
+| `GH_OWNER_ID` | — | `gh api orgs/YOUR_ORG --jq '.id'` (only needed for org-wide condition) | `12345678` |
 
 ### Prerequisites
 
@@ -60,7 +62,8 @@ The examples below use these placeholders. Set them as GitHub
 # Set these for your environment
 export GCP_PROJECT_ID="my-ai-project"
 export GCP_PROJECT_NUM="$(gcloud projects describe $GCP_PROJECT_ID --format='value(projectNumber)')"
-export GH_OWNER_ID="$(gh api orgs/YOUR_ORG --jq '.id')"
+export GH_ORG="my-org"
+export GH_REPO="my-repo"
 
 # 1. Create a workload identity pool
 gcloud iam workload-identity-pools create "github-pool" \
@@ -69,26 +72,37 @@ gcloud iam workload-identity-pools create "github-pool" \
   --display-name="GitHub Actions Pool"
 
 # 2. Create an OIDC provider linked to GitHub Actions
+#    The attribute condition restricts which repositories can authenticate.
+#    Use a per-repository condition (recommended) or per-org condition.
+#
+#    Per-repository (recommended — only YOUR_ORG/YOUR_REPO can authenticate):
 gcloud iam workload-identity-pools providers create-oidc "github-provider" \
   --project="${GCP_PROJECT_ID}" \
   --location="global" \
   --workload-identity-pool="github-pool" \
   --issuer-uri="https://token.actions.githubusercontent.com" \
   --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_owner_id=assertion.repository_owner_id" \
-  --attribute-condition="assertion.repository_owner_id=='${GH_OWNER_ID}'"
+  --attribute-condition="assertion.repository=='${GH_ORG}/${GH_REPO}'"
 
-# 3. Allow the pool to impersonate a service account
+#    Per-org alternative (any repo in the org can authenticate):
+#    --attribute-condition="assertion.repository_owner_id=='${GH_OWNER_ID}'"
+
+# 3. Allow the pool to impersonate a service account (per-repository scope)
 gcloud iam service-accounts add-iam-policy-binding \
   "cicaddy@${GCP_PROJECT_ID}.iam.gserviceaccount.com" \
   --project="${GCP_PROJECT_ID}" \
   --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/${GCP_PROJECT_NUM}/locations/global/workloadIdentityPools/github-pool/attribute.repository/YOUR_ORG/YOUR_REPO"
+  --member="principalSet://iam.googleapis.com/projects/${GCP_PROJECT_NUM}/locations/global/workloadIdentityPools/github-pool/attribute.repository/${GH_ORG}/${GH_REPO}"
 ```
 
 The service account needs `roles/aiplatform.user` to invoke Vertex AI models.
 
-> **Security**: Use `repository_owner_id` (numeric, immutable) in attribute
-> conditions rather than `repository_owner` (name, can be re-registered).
+> **Security**: Both the provider attribute condition (step 2) and the IAM
+> binding (step 3) should be scoped to the specific repository, not just the
+> organization. An org-wide condition lets any repo in the org mint tokens
+> and impersonate the service account. Use `repository_owner_id` (numeric,
+> immutable) if you do need org-level access — never use `repository_owner`
+> (name string, can be re-registered after deletion).
 
 ### Claude via Vertex AI
 
