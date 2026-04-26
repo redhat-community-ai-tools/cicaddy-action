@@ -117,12 +117,20 @@ can reference them as bash variables (`INPUT_AI_PROVIDER`, `INPUT_AI_API_KEY`, e
 
 | Input | Required | Description |
 |-------|----------|-------------|
-| `ai_provider` | Yes | `gemini`, `openai`, `claude` |
+| `ai_provider` | Yes | `gemini`, `openai`, `claude`, `anthropic-vertex`, `gemini-vertex` |
 | `ai_model` | Yes | Model identifier |
-| `ai_api_key` | Yes* | AI provider API key (mapped to provider-specific env var) |
+| `ai_api_key` | No* | AI provider API key (not needed for `anthropic-vertex` or `gemini-vertex`) |
+| `vertex_project_id` | No | GCP project ID for Vertex AI Claude (falls back to `google_cloud_project`) |
+| `google_cloud_project` | No | GCP project ID for Vertex AI (required for `gemini-vertex`) |
+| `google_cloud_location` | No | Vertex AI location (default: `global`) |
 | `task_file` | No | Path to DSPy YAML task file |
 | `task_prompt` | No | Inline task prompt |
 | `post_pr_comment` | No | Post results as PR comment (default: `false`) |
+| `submit_review` | No | Submit formal PR review with APPROVE/REQUEST_CHANGES (default: `false`) |
+| `run_govulncheck` | No | Run govulncheck for vulnerability reachability analysis (default: `false`) |
+| `dep_review_severity_threshold` | No | Minimum semver bump to analyze: `minor` or `major` (default: `minor`) |
+| `delegation_mode` | No | `none` (default) or `auto` for sub-agent delegation |
+| `max_sub_agents` | No | Max concurrent sub-agents, 1-10 (default: `3`) |
 | `github_token` | No | GitHub token (default: `${{ github.token }}`) |
 | `mcp_servers_config` | No | JSON array of MCP server configs |
 | `slack_webhook_url` | No | Slack webhook URL |
@@ -225,7 +233,7 @@ the `safe-to-review` label. The label is auto-removed on new pushes to prevent
 TOCTOU bypasses.
 
 ```yaml
-- uses: redhat-community-ai-tools/cicaddy-action@v0.6.0
+- uses: redhat-community-ai-tools/cicaddy-action@v0.7.0
   with:
     ai_provider: gemini
     ai_model: gemini-3-flash-preview
